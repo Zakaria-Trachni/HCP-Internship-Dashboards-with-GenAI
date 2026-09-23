@@ -1,0 +1,238 @@
+% =====================================================================
+%  Script de soutenance (15 min) — MCP-Powered BI Ecosystem
+%  Partie 1 : Mohamed (slides 1 à 8) · Partie 2 : Zakariae (slides 9 à 15)
+%  Compatible pdfLaTeX (Overleaf) ET XeLaTeX / Tectonic.
+% =====================================================================
+\documentclass[11pt,a4paper]{article}
+
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
+\usepackage[french]{babel}
+\usepackage[a4paper,margin=2.2cm,headheight=14pt]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{microtype}
+\usepackage{enumitem}
+\setlist{topsep=2pt,itemsep=2pt,leftmargin=1.6em}
+\usepackage{needspace}
+
+% ---- Couleurs (charte teal du projet) ------------------------------
+\usepackage{xcolor}
+\definecolor{accent}{HTML}{0D9488}
+\definecolor{accentdark}{HTML}{047857}
+\definecolor{accentsoft}{HTML}{D1FAF2}
+\definecolor{ink}{HTML}{0F2A30}
+\definecolor{muted}{HTML}{5B7178}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}\fancyhf{}
+\fancyhead[L]{\small\color{muted}Script de soutenance}
+\fancyhead[R]{\small\color{muted}MCP-Powered BI Ecosystem}
+\fancyfoot[C]{\small\color{muted}\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\usepackage[hidelinks]{hyperref}
+
+% ---- Bandeau « partie / présentateur » -----------------------------
+\newcommand{\presheader}[3]{%
+  \bigskip\par\noindent
+  \colorbox{accentdark}{%
+    \parbox[c][0.98cm][c]{\dimexpr\linewidth-2\fboxsep\relax}{%
+      \hspace{4pt}{\large\bfseries\color{white}#1}\quad
+      {\color{accentsoft}\normalsize #2}\hfill
+      {\color{accentsoft}\small #3}\hspace{4pt}}}%
+  \par\medskip}
+
+% ---- En-tête d'une slide -------------------------------------------
+\newcommand{\slidecue}[3]{%
+  \needspace{4\baselineskip}%
+  \medskip\par\noindent
+  {\color{accentdark}\rule[-3pt]{4pt}{17pt}}\hspace{8pt}%
+  {\large\bfseries\color{ink}Slide #1\, — \,#2}%
+  \hfill{\small\color{muted}#3}\par
+  \nopagebreak\smallskip}
+
+% ---- Didascalie (indication scénique) ------------------------------
+\newcommand{\cue}[1]{{\itshape\color{muted}#1}}
+
+\begin{document}
+\thispagestyle{fancy}
+
+% ---- Titre ----------------------------------------------------------
+\begin{center}
+  {\Large\bfseries\color{ink}Script de présentation — Soutenance PFA}\\[3pt]
+  {\large\color{accentdark}MCP-Powered BI Ecosystem}\\[8pt]
+  {\color{muted}Durée cible : \textbf{15 minutes} \;\textbullet\;
+   Mohamed Rouane \emph{(slides 1 à 8)} \;\textbullet\;
+   Zakariae Trachni \emph{(slides 9 à 15)}}
+\end{center}
+\vspace{2pt}
+\noindent\colorbox{accentsoft}{%
+  \parbox{\dimexpr\linewidth-2\fboxsep\relax}{\small\color{ink}\hspace{2pt}
+  \textbf{Conseils :} parlez lentement, regardez le jury, et changez de slide
+  quand le texte correspondant est terminé. Les temps indiqués sont des repères
+  (total $\approx$ 14 min, pour garder une marge). Le texte \cue{en italique gris}
+  est une indication d'action, à ne pas lire à voix haute.\hspace{2pt}}}
+
+% =====================================================================
+\presheader{Partie 1}{Mohamed Rouane — slides 1 à 8}{$\approx$ 6 min 40}
+
+\slidecue{1}{Page de garde}{$\approx$ 30 s}
+Bonjour à toutes et à tous. Nous sommes Mohamed Rouane et Zakariae Trachni,
+étudiants en Ingénierie Data Science et Cloud Computing à l'ENSA d'Oujda. Nous
+vous présentons notre projet de fin d'année, encadré par le professeur
+Abdelmounaim Kerkri. Son titre : \textbf{MCP-Powered BI Ecosystem}. C'est une
+plateforme qui automatise l'analyse de données grâce à plusieurs agents
+d'intelligence artificielle. Je commence par le contexte et la conception, puis
+Zakariae présentera la réalisation et une démonstration en direct.
+
+\slidecue{2}{Plan de la présentation}{$\approx$ 20 s}
+Voici notre plan. Nous posons d'abord le contexte et le problème, puis nos
+objectifs et les technologies utilisées. Ensuite, je détaille la conception :
+l'architecture, les sept agents et le moteur d'analyse. Zakariae enchaînera
+avec la réalisation, une démonstration en direct, l'étude de cas et les
+résultats, et enfin la conclusion.
+
+\slidecue{3}{Contexte \& problématique}{$\approx$ 1 min 10}
+Commençons par le contexte. Pour transformer des données en décisions, on suit
+toujours la même chaîne : on récupère les données brutes, on les valide, on les
+nettoie, on calcule des indicateurs, puis on produit un rapport pour décider.
+Le problème, c'est que cette chaîne est aujourd'hui presque entièrement
+\textbf{manuelle}. Elle dépend fortement d'un analyste, qui devient un goulot
+d'étranglement. C'est un travail répétitif, à refaire à chaque nouveau fichier.
+Les solutions existantes sont souvent spécialisées pour un seul cas d'usage,
+avec des hypothèses figées. Et la rédaction du rapport reste entièrement
+humaine. D'où notre \textbf{problématique} : comment analyser automatiquement,
+et de manière fiable, n'importe quel jeu de données, en combinant la rigueur
+d'un programme et le discernement d'agents d'intelligence artificielle ?
+
+\slidecue{4}{Objectifs du projet}{$\approx$ 40 s}
+Nos objectifs découlent de ce problème. Premièrement, construire une
+architecture à plusieurs agents, coordonnés par un serveur MCP. Deuxièmement,
+un moteur capable de s'adapter à n'importe quelles données, sans rien supposer
+du métier. Troisièmement, produire automatiquement deux livrables : un tableau
+de bord interactif et un rapport décisionnel. Et quatrièmement, garantir la
+fiabilité des résultats. Le point le plus important est en bas de l'écran :
+\textbf{zéro hypothèse métier}. Le système fonctionne sur n'importe quel fichier
+CSV, Excel ou JSON.
+
+\slidecue{5}{Les briques technologiques}{$\approx$ 1 min}
+Sur quelles technologies nous appuyons-nous ? D'abord les grands modèles de
+langage, les LLM : ils savent raisonner et résumer, mais ils ont un défaut
+connu — ils inventent parfois des informations. C'est ce qu'on appelle les
+\og hallucinations \fg{}. Ensuite, les agents d'IA : un agent observe, décide,
+puis agit, et plusieurs agents spécialisés coopèrent. Le troisième élément est
+le c\oe ur de notre projet : le \textbf{protocole MCP}, un standard ouvert qui
+fournit aux modèles un registre d'outils avec un contrôle d'accès. Enfin, côté
+technique, nous utilisons Python, pandas, Plotly et FastAPI.
+
+\slidecue{6}{Architecture en couches}{$\approx$ 1 min}
+Passons à la conception. Notre système est organisé en couches, du haut vers le
+bas. En haut, la couche présentation : l'interface web où l'utilisateur dépose
+son fichier et consulte les résultats. En dessous, l'orchestration, qui pilote
+tout le processus. Puis la couche des sept agents. Au centre, le \textbf{serveur
+MCP}, qui contrôle tous les accès aux outils. En dessous, le moteur
+déterministe, qui fait les calculs. Et tout en bas, le magasin d'artefacts, où
+sont stockés le tableau de bord et le rapport. L'avantage : chaque couche est
+indépendante, et le serveur MCP est le seul point de passage vers les outils.
+
+\slidecue{7}{Sept agents, un serveur MCP}{$\approx$ 1 min}
+Voici nos sept agents : l'Orchestrateur, l'Ingestion, la préparation des
+données, le KPI, le Dashboard, la Publication et le Reporter. Chacun a un rôle
+précis, et tous passent par le serveur MCP, qui expose quatorze outils. Le
+principe clé est celui du \textbf{moindre privilège} : chaque agent ne peut
+utiliser que les outils strictement nécessaires à son rôle ; toute demande hors
+de son périmètre est refusée par défaut. Par exemple, à droite, l'agent KPI ne
+peut appeler que les outils liés aux indicateurs : profiler les données,
+suggérer et calculer les KPIs, détecter les anomalies. C'est une vraie garantie
+de sécurité et de robustesse.
+
+\slidecue{8}{Le moteur déterministe adaptatif}{$\approx$ 1 min}
+Voici le moteur qui réalise le vrai travail d'analyse, en quatre étapes.
+Premièrement, le \textbf{profilage} : il devine le rôle de chaque colonne —
+est-ce une mesure, une date, un pays, un identifiant ? Deuxièmement, il calcule
+les indicateurs adaptés à ces rôles. Troisièmement, il génère les graphiques :
+tendances, barres, carte, corrélations. Quatrièmement, il extrait des insights,
+comme les anomalies et les comparaisons. Le message important est en bas : la
+\textbf{bonne division du travail}. Le moteur garantit l'exactitude des
+chiffres ; les agents IA apportent le jugement et la rédaction. Conséquence
+directe : \textbf{aucun chiffre n'est inventé par le modèle}. Je laisse
+maintenant la parole à Zakariae. \cue{(Transition vers Zakariae.)}
+
+% =====================================================================
+\presheader{Partie 2}{Zakariae Trachni — slides 9 à 15}{$\approx$ 7 min 30}
+
+\slidecue{9}{Fiabilité : la confiance avant tout}{$\approx$ 45 s}
+Merci Mohamed. Je vais parler de la fiabilité, qui est au c\oe ur de notre
+projet. Nous avons mis en place trois mécanismes. D'abord, les \textbf{filets de
+sécurité} : si un agent oublie une étape, le pipeline la réalise à sa place ;
+les livrables sont donc toujours complets. Ensuite, la \textbf{vérification des
+chiffres} : chaque nombre du rapport est comparé aux indicateurs réellement
+calculés. C'est notre garde-fou contre les hallucinations. Enfin, le
+\textbf{suivi des coûts} : on mesure les jetons, le temps et le coût de chaque
+agent. Grâce à ces filets, une exécution réussit toujours.
+
+\slidecue{10}{Démonstration en direct}{$\approx$ 3 min 30}
+Passons maintenant à la pratique, avec une démonstration en direct. Je vais
+faire quatre choses :
+\begin{enumerate}[label=\textbf{\arabic*.}]
+  \item Je \textbf{téléverse} un fichier de données — ici un simple CSV.
+  \item On \textbf{suit le pipeline} en direct : vous voyez les sept agents
+        travailler les uns après les autres.
+  \item Une fois terminé, j'ouvre le \textbf{tableau de bord} interactif, avec
+        ses graphiques et la carte mondiale.
+  \item Enfin, j'ouvre le \textbf{rapport décisionnel}, dont tous les chiffres
+        ont été vérifiés.
+\end{enumerate}
+\cue{(Prenez votre temps : commentez ce qui s'affiche à l'écran à chaque étape.
+Si la démonstration en direct pose problème, les aperçus à droite de la slide
+montrent ces mêmes étapes — servez-vous-en comme repli.)}
+
+\slidecue{11}{Étude de cas : matchs internationaux}{$\approx$ 45 s}
+Pour valider notre approche, prenons un vrai jeu de données : près de
+\textbf{dix-huit mille matchs} de football internationaux, de 1872 à 2024,
+quatre-vingt-dix tournois et plus de deux cents équipes. Point important : nous
+n'avons donné \textbf{aucune configuration} ; le système a tout découvert seul.
+Il a reconnu deux mesures — les buts à domicile et à l'extérieur. Il a compris
+que les équipes étaient des pays, ce qui a permis de générer une carte mondiale.
+Et il a repéré la colonne de dates ainsi que les différentes dimensions, comme
+le tournoi ou le stade.
+
+\slidecue{12}{Des insights pertinents, automatiquement}{$\approx$ 1 min}
+Et les résultats sont parlants. À gauche, le système a détecté tout seul une
+\textbf{anomalie} : le match Australie 31 à 0 face aux Samoa américaines, en
+2001 — c'est un record du monde. Il l'a isolé sans aucune connaissance du
+football. À droite, une \textbf{comparaison de segments} : les équipes marquent
+en moyenne 1,78 but à domicile, contre 1,48 à l'extérieur. Autrement dit,
+l'avantage du terrain, mesuré quantitativement. Et je le redis : tous ces
+chiffres présents dans le rapport ont été \textbf{vérifiés automatiquement}.
+
+\slidecue{13}{Validation : 22 tests automatisés}{$\approx$ 30 s}
+Côté qualité, nous avons écrit \textbf{vingt-deux tests automatisés}, et ils
+sont tous au vert. Ils couvrent le profilage des colonnes, les permissions du
+serveur MCP, la vérification des chiffres, la relance des agents, la détection
+géographique et les insights. Ces tests ne font pas appel aux modèles de
+langage : ils sont donc rapides et reproductibles.
+
+\slidecue{14}{Conclusion \& perspectives}{$\approx$ 45 s}
+En conclusion, nous avons construit une plateforme de Business Intelligence
+\textbf{généraliste et automatisée}, qui fonctionne de bout en bout. Elle
+combine un moteur déterministe et sept agents coordonnés par MCP, produit un
+tableau de bord et un rapport reproductibles, le tout avec de vrais mécanismes
+de fiabilité. Et elle a été validée sur près de dix-huit mille matchs réels.
+Comme perspectives, nous envisageons l'interrogation en langage naturel, des
+connecteurs vers des bases de données, des analyses prédictives, et
+l'industrialisation de la plateforme.
+
+\slidecue{15}{Merci}{$\approx$ 15 s}
+Voilà qui conclut notre présentation. Nous vous remercions pour votre attention,
+et nous sommes prêts à répondre à vos questions. \cue{(Rester détendu et à
+l'écoute pour les questions du jury.)}
+
+\end{document}

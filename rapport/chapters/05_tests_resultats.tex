@@ -1,0 +1,175 @@
+\chapter{Tests, résultats et étude de cas}
+\label{chap:tests}
+
+\callout{En bref}{Ce chapitre présente la stratégie de validation du système,
+les résultats des tests automatisés, puis une étude de cas approfondie sur un
+jeu de 17 769 matchs internationaux de football, avant une discussion des
+apports et des limites.}
+
+\section{Stratégie de tests}
+La qualité du système repose sur une suite de \textbf{22 tests automatisés}
+(exécutés avec \texttt{pytest}), couvrant à la fois le moteur déterministe et
+la logique d'orchestration. Deux principes ont guidé cette stratégie :
+\begin{itemize}
+  \item \textbf{tester sans LLM} : le cœur déterministe est validé
+        indépendamment de tout fournisseur de modèle, ce qui rend les tests
+        rapides et reproductibles ;
+  \item \textbf{simuler les défaillances d'agents} : un client LLM
+        « fictif » permet de vérifier que les filets de sécurité produisent
+        des livrables complets même lorsque les agents n'appellent aucun outil.
+\end{itemize}
+
+Le tableau~\ref{tab:tests} récapitule la couverture par module.
+
+\begin{table}[ht]
+\centering\small
+\caption{Couverture des tests automatisés.}
+\label{tab:tests}
+\begin{tabularx}{\linewidth}{@{}Yc@{}}
+\toprule
+\textbf{Domaine testé} & \textbf{Nb. de tests} \\
+\midrule
+Profilage des rôles de colonnes & 1 \\
+Suggestion et calcul des KPIs & 1 \\
+Suggestion et construction des graphiques & 1 \\
+Assemblage du tableau de bord HTML & 1 \\
+Permissions du serveur MCP (refus hors périmètre) & 1 \\
+Vérification des chiffres (\texttt{validation.py}) & 7 \\
+Relance avec incitation (\textit{retry-with-nudge}) & 2 \\
+Détection géographique \& carte choroplèthe & 3 \\
+Détection d'anomalies & 2 \\
+Comparaison de segments & 2 \\
+Extraction numérique robuste & 1 \\
+\midrule
+\textbf{Total} & \textbf{22} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+L'ensemble des 22 tests est au vert. Au-delà des tests unitaires, des
+\textbf{exécutions de bout en bout} sur des jeux de données réels valident
+l'intégration complète (du téléversement aux artefacts produits).
+
+\section{Étude de cas : matchs internationaux de football}
+
+\subsection{Présentation du jeu de données}
+Pour valider l'approche généraliste, nous avons soumis au système un jeu de
+données de \textbf{17 769 matchs internationaux de football} disputés entre
+\textbf{1872 et 2024}. Aucune configuration spécifique n'a été fournie : le
+système a découvert seul la structure des données. Le profilage automatique a
+identifié :
+\begin{itemize}
+  \item 2 \textbf{mesures} : buts à domicile (\textit{Home Goals}) et à
+        l'extérieur (\textit{Away Goals}) ;
+  \item 2 colonnes \textbf{géographiques} : équipe à domicile et à
+        l'extérieur (reconnues comme des pays) ;
+  \item 1 colonne \textbf{date}, et plusieurs \textbf{dimensions}
+        (tournoi, ville, stade neutre ou non) ;
+  \item 90 tournois, 214 équipes à domicile et 218 à l'extérieur.
+\end{itemize}
+
+La figure~\ref{fig:source} montre la section « source des données » du rapport
+généré, incluant le schéma détecté et le résultat de la validation.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_rapport_source.png}
+\caption{Section « source des données » : schéma détecté automatiquement et validation.}
+\label{fig:source}
+\end{figure}
+
+\subsection{Résultats : indicateurs et tableau de bord}
+Le système a produit automatiquement un tableau de bord complet et un rapport.
+Parmi les indicateurs calculés :
+\begin{itemize}
+  \item un total de \textbf{30 605 buts à domicile} sur l'ensemble des matchs ;
+  \item une moyenne de \textbf{1,72} but à domicile contre \textbf{1,17} à
+        l'extérieur ;
+  \item un maximum de \textbf{31 buts} marqués en un seul match.
+\end{itemize}
+
+Le tableau~\ref{tab:resultats} récapitule les principaux indicateurs produits
+automatiquement par le système pour ce jeu de données.
+
+\begin{table}[ht]
+\centering\small
+\caption{Indicateurs clés calculés pour l'étude de cas.}
+\label{tab:resultats}
+\begin{tabularx}{\linewidth}{@{}Yr@{}}
+\toprule
+\textbf{Indicateur} & \textbf{Valeur} \\
+\midrule
+Nombre total de matchs & 17\,769 \\
+Total des buts à domicile & 30\,605 \\
+Moyenne de buts à domicile & 1,72 \\
+Moyenne de buts à l'extérieur & 1,17 \\
+Maximum de buts en un match & 31 \\
+Tournois distincts & 90 \\
+Équipes à domicile distinctes & 214 \\
+Équipes à l'extérieur distinctes & 218 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+La \textbf{carte choroplèthe} (figure~\ref{fig:carte}, chapitre précédent)
+révèle d'un coup d'œil la domination du \textbf{Brésil} en buts cumulés à
+domicile, suivi des grandes nations européennes et sud-américaines. Les
+\textbf{séries temporelles} (figures~\ref{fig:serieH} et~\ref{fig:serieA})
+montrent une nette intensification du nombre de buts après l'an 2000, reflet de
+la multiplication des rencontres internationales.
+
+\subsection{Résultats : anomalies détectées}
+La détection d'anomalies a automatiquement isolé des matchs au score
+exceptionnel. Le plus extrême correspond au match historique
+\textbf{Australie 31--0 Samoa américaines} (2001), record du monde de buts
+inscrits en un match international, correctement identifié comme valeur
+aberrante (score~z très élevé). Côté extérieur, le match \textbf{Maldives
+0--17 Iran} (1997) ressort également. Ce résultat illustre la capacité du
+système à faire remonter, sans aucune connaissance métier préalable, des
+événements réellement remarquables.
+
+\subsection{Résultats : avantage du terrain}
+La comparaison de segments a mis en évidence un phénomène bien connu des
+analystes du football : l'\textbf{avantage du terrain}. En segmentant selon le
+caractère « à domicile ou non » du stade, le système a mesuré une moyenne de
+buts supérieure pour l'équipe jouant chez elle (1,78 contre 1,48), confirmant
+quantitativement cet effet — là encore, de manière entièrement automatique.
+
+\subsection{Véracité du rapport}
+Enfin, le mécanisme de vérification a confirmé que \textbf{l'intégralité des
+chiffres} cités dans les conclusions du rapport correspondait aux indicateurs
+réellement calculés (verdict « vérifié », figure~\ref{fig:findings} du
+chapitre précédent), démontrant l'efficacité du garde-fou anti-hallucination.
+
+\section{Discussion}
+
+\subsection{Apports}
+L'étude de cas confirme les promesses de l'approche :
+\begin{itemize}
+  \item \textbf{généralité} : un jeu de données sportif, jamais anticipé, est
+        analysé sans aucune configuration ;
+  \item \textbf{pertinence} : les indicateurs, la carte et les insights
+        produits sont immédiatement exploitables ;
+  \item \textbf{fiabilité} : les chiffres sont exacts et vérifiés, et les
+        livrables toujours complets grâce aux filets de sécurité ;
+  \item \textbf{rapidité} : l'analyse complète est produite en quelques
+        secondes, contre des heures de travail manuel.
+\end{itemize}
+
+\subsection{Limites}
+Plusieurs limites subsistent :
+\begin{itemize}
+  \item la détection géographique repose sur des noms de pays en anglais ;
+        certaines entités infranationales (Écosse, Pays de Galles) ne sont pas
+        cartographiées par la projection mondiale ;
+  \item la qualité de la narration dépend du modèle de langage employé ;
+  \item le système traite un fichier à la fois et ne gère pas encore les
+        jointures entre sources ;
+  \item l'analyse reste descriptive (pas de modélisation prédictive).
+\end{itemize}
+Ces limites ouvrent directement sur les perspectives présentées en conclusion.
+
+\callout{Synthèse du chapitre}{Les 22 tests valident le cœur du système, et
+l'étude de cas sur 17 769 matchs démontre une analyse généraliste, pertinente
+et fiable : carte mondiale, détection du match record 31--0, mise en évidence
+de l'avantage du terrain, et chiffres intégralement vérifiés.}

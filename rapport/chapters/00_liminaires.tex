@@ -1,0 +1,159 @@
+% ---- Dédicace -------------------------------------------------------
+\chapter*{Dédicace}
+\addcontentsline{toc}{chapter}{Dédicace}
+\thispagestyle{plain}
+
+\vspace*{1.5cm}
+\begin{center}
+\textcolor{accent}{\rule{0.32\linewidth}{1.2pt}}\\[1.4cm]
+\end{center}
+
+\begin{center}\large\itshape
+\setstretch{1.6}
+À nos chers \textbf{parents},\\
+pour leur amour inconditionnel, leurs sacrifices\\
+et leur soutien qui n'a jamais faibli.\\[1.1cm]
+
+À nos \textbf{familles} et à nos \textbf{ami(e)s},\\
+pour leurs encouragements constants.\\[1.1cm]
+
+À nos \textbf{enseignants},\\
+qui ont éveillé en nous la curiosité\\
+et le goût du travail bien fait.\\[1.1cm]
+
+À toutes celles et ceux qui croient\\
+qu'une donnée, bien analysée, éclaire la décision.
+\end{center}
+
+\vspace{1cm}
+\begin{center}
+\textcolor{accent}{\rule{0.32\linewidth}{1.2pt}}
+\end{center}
+\begin{flushright}\itshape
+\auteurun\ \& \auteurdeux
+\end{flushright}
+
+% ---- Remerciements --------------------------------------------------
+\chapter*{Remerciements}
+\addcontentsline{toc}{chapter}{Remerciements}
+
+\begin{center}\itshape
+« La connaissance s'acquiert par l'expérience, et se transmet par l'exemple. »
+\end{center}
+\vspace{0.8cm}
+
+Au terme de ce projet de fin d'année, nous tenons à exprimer notre profonde
+gratitude à toutes les personnes qui ont rendu ce travail possible.
+
+Nos remerciements les plus sincères s'adressent à notre encadrant,
+\textbf{\monencadrant}, qui a su transformer ce projet exigeant en une
+expérience formatrice remarquable grâce à :
+\begin{itemize}
+  \item son \textbf{encadrement rigoureux} et ses orientations éclairées ;
+  \item sa \textbf{disponibilité} constante et son écoute attentive ;
+  \item ses \textbf{conseils avisés}, déterminants pour nos choix techniques ;
+  \item son \textbf{exigence bienveillante}, qui nous a poussés à nous dépasser.
+\end{itemize}
+
+Son accompagnement a été déterminant pour :
+\begin{itemize}
+  \item structurer notre démarche d'ingénierie ;
+  \item approfondir notre compréhension des architectures multi-agents ;
+  \item mener à bien la réalisation pratique de cette plateforme.
+\end{itemize}
+
+Nous adressons également notre reconnaissance :
+\begin{itemize}
+  \item à l'ensemble du \textbf{corps professoral} de l'\monetablissement,
+        pour la qualité de la formation dispensée ;
+  \item à nos \textbf{familles}, pour leur soutien indéfectible ;
+  \item à nos \textbf{camarades de promotion}, pour leur entraide et leurs
+        encouragements.
+\end{itemize}
+
+Ce projet a constitué une expérience académique enrichissante, permettant une
+application concrète des connaissances théoriques. Nous en garderons non
+seulement des compétences techniques solides, mais aussi l'exemple d'un
+enseignement de grande qualité.
+
+\vspace{0.8cm}
+\begin{flushright}\itshape
+Avec toute notre reconnaissance,\\[6pt]
+\textbf{\auteurun\ \& \auteurdeux}
+\end{flushright}
+
+% ---- Résumé ---------------------------------------------------------
+\chapter*{Résumé}
+\addcontentsline{toc}{chapter}{Résumé}
+
+Les outils de \textit{Business Intelligence} (BI) traditionnels exigent un
+travail manuel important : définition des indicateurs, modélisation des
+données, conception des tableaux de bord et rédaction des rapports. Ce
+processus est long, coûteux et fortement dépendant d'experts. Ce projet
+propose \textbf{\montitre}, une plateforme décisionnelle \emph{généraliste}
+et \emph{automatisée} capable d'analyser n'importe quel jeu de données
+tabulaire (CSV, Excel, JSON) \emph{sans hypothèse préalable} sur les noms de
+colonnes ni sur le domaine métier.
+
+La plateforme repose sur une équipe de \textbf{sept agents d'intelligence
+artificielle} spécialisés, orchestrés via le \textbf{protocole MCP} (\textit{Model
+Context Protocol}). Un serveur MCP expose, sous forme d'outils contrôlés par
+permissions, l'ensemble des capacités du système ; chaque agent (Orchestrateur,
+Ingestion, Préparation, KPI, Tableau de bord, Publication, Rédaction) n'a accès
+qu'aux outils strictement nécessaires à son rôle. Un \textbf{moteur déterministe
+adaptatif} profile automatiquement les données, en déduit des indicateurs et des
+visualisations pertinents, tandis que les grands modèles de langage (LLM)
+curent, priorisent et rédigent l'analyse. Le système produit, par exécution,
+un \textbf{tableau de bord interactif}, un \textbf{rapport décisionnel} (page
+web et PDF) et un magasin d'artefacts reproductible.
+
+Des mécanismes de \textbf{fiabilité} ont été conçus : filets de sécurité
+déterministes garantissant des livrables complets même en cas de défaillance
+d'un agent, vérification automatique des chiffres du rapport face aux
+indicateurs calculés, et suivi des coûts (jetons, latence). Une étude de cas
+sur un jeu de \textbf{17 769 matchs internationaux de football} valide
+l'approche : carte mondiale des buts, détection d'anomalies (dont le match
+historique Australie 31--0 Samoa américaines) et mise en évidence de
+l'avantage du terrain.
+
+\vspace{6pt}
+\noindent\textbf{Mots-clés :} Business Intelligence, agents IA, protocole MCP,
+grands modèles de langage, automatisation décisionnelle, visualisation de
+données, FastAPI, Plotly.
+
+% ---- Abstract -------------------------------------------------------
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Traditional Business Intelligence (BI) tools require substantial manual
+effort: defining indicators, modelling data, designing dashboards and writing
+reports. This process is slow, costly and heavily dependent on experts. This
+project introduces \textbf{\montitre}, a \emph{generalist} and \emph{automated}
+decision-support platform able to analyse any tabular dataset (CSV, Excel,
+JSON) \emph{without prior assumptions} about column names or business domain.
+
+The platform relies on a team of \textbf{seven specialised AI agents}
+orchestrated through the \textbf{Model Context Protocol (MCP)}. An MCP server
+exposes every capability of the system as permission-controlled tools; each
+agent (Orchestrator, Ingestion, Data~Prep, KPI, Dashboard, Publishing,
+Reporter) can only access the tools strictly required by its role. A
+\textbf{deterministic adaptive engine} automatically profiles the data and
+derives relevant indicators and visualisations, while Large Language Models
+(LLMs) curate, prioritise and write the analysis. Each run yields an
+\textbf{interactive dashboard}, a \textbf{BI report} (web page and PDF) and a
+reproducible artifact store.
+
+Reliability mechanisms were designed: deterministic safety nets guaranteeing
+complete deliverables even when an agent misbehaves, automatic verification of
+the report's figures against the computed indicators, and cost tracking
+(tokens, latency). A case study on \textbf{17{,}769 international football
+matches} validates the approach: a world map of goals, anomaly detection
+(including the historic Australia 31--0 American Samoa match) and the
+home-advantage effect.
+
+\vspace{6pt}
+\noindent\textbf{Keywords:} Business Intelligence, AI agents, MCP protocol,
+Large Language Models, decision automation, data visualisation, FastAPI,
+Plotly.
+
+\cleardoublepage

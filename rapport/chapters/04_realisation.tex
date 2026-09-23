@@ -1,0 +1,324 @@
+\chapter{Réalisation et implémentation}
+\label{chap:realisation}
+
+\callout{En bref}{Ce chapitre décrit la mise en œuvre concrète du système :
+l'environnement technique, le profilage adaptatif, le calcul des indicateurs,
+les visualisations (dont la carte géographique), les analyses avancées
+(anomalies, segments), l'orchestration avec ses filets de sécurité, la
+publication des livrables et les mécanismes de fiabilité.}
+
+\section{Environnement et technologies}
+Le système est développé en \textbf{Python~3}. Le tableau~\ref{tab:tech}
+récapitule les principales technologies et leur rôle.
+
+\begin{table}[ht]
+\centering\small
+\caption{Technologies utilisées.}
+\label{tab:tech}
+\begin{tabularx}{\linewidth}{@{}lY@{}}
+\toprule
+\textbf{Technologie} & \textbf{Rôle dans le projet} \\
+\midrule
+\textbf{pandas / NumPy} & Manipulation et analyse des données tabulaires. \\
+\textbf{Plotly} & Génération des graphiques interactifs (HTML autonome). \\
+\textbf{FastAPI / Uvicorn} & Interface web (téléversement, suivi, restitution). \\
+\textbf{Jinja2} & Gabarits HTML de l'interface. \\
+\textbf{\texttt{mcp}} & Implémentation du serveur Model Context Protocol. \\
+\textbf{Groq / Ollama} & Fournisseurs de LLM (hébergé / local). \\
+\textbf{kaleido} & Export statique des graphiques (figures du présent rapport). \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+L'organisation du code suit la séparation en couches : le paquet
+\texttt{src/core/} contient le moteur déterministe, \texttt{src/llm/}
+l'abstraction des fournisseurs de LLM, \texttt{src/mcp\_server/} le serveur
+MCP et ses outils, \texttt{src/agents/} les sept agents, et \texttt{src/ui/}
+l'interface web. Le pipeline (\texttt{src/pipeline.py}) relie l'ensemble.
+
+\section{Interface utilisateur}
+L'interface web, développée avec FastAPI et Jinja2, constitue le point
+d'entrée. La figure~\ref{fig:accueil} présente la page d'accueil : zone de
+téléversement, présentation des sept agents et historique des exécutions
+passées.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.86\linewidth]{fig_accueil.png}
+\caption{Page d'accueil : téléversement, présentation des agents et historique.}
+\label{fig:accueil}
+\end{figure}
+
+Après téléversement, le traitement s'exécute en arrière-plan et l'utilisateur
+suit sa \textbf{progression par étape}. La figure~\ref{fig:pipeline} montre la
+vue d'exécution : statut de chaque agent, indicateurs de consommation (jetons,
+coût estimé, latence) et résultat de la vérification des chiffres.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.74\linewidth]{fig_pipeline.png}
+\caption{Suivi en temps réel de l'exécution du pipeline et synthèse des agents.}
+\label{fig:pipeline}
+\end{figure}
+
+\section{Abstraction des fournisseurs de LLM}
+Pour garantir la portabilité, l'accès aux modèles de langage passe par une
+\textbf{abstraction} unique (\texttt{src/llm/client.py}) qui masque les
+différences entre fournisseurs. Une fabrique sélectionne, selon la
+configuration, le client \textbf{Groq} (hébergé, faible latence) ou
+\textbf{Ollama} (local, sans clé d'API). Les deux exposent la même méthode
+\texttt{chat()} acceptant des outils au format OpenAI et renvoyant un message
+normalisé, enrichi de la consommation (jetons) et de la latence. Ce dernier
+point alimente le suivi des coûts (section~\ref{sec:couts}).
+
+\begin{lstlisting}[language=Python,caption={Sélection du fournisseur de LLM (\texttt{llm/client.py}).}]
+def get_llm_client():
+    provider = os.getenv("LLM_PROVIDER", "groq").lower()
+    if provider == "groq":
+        return GroqClient(api_key=os.getenv("GROQ_API_KEY"),
+                          model=os.getenv("GROQ_MODEL"))
+    if provider == "ollama":
+        return OllamaClient(host=os.getenv("OLLAMA_HOST"),
+                            model=os.getenv("OLLAMA_MODEL"))
+    raise RuntimeError(f"Fournisseur inconnu : {provider!r}")
+\end{lstlisting}
+
+Cette conception applique le principe d'\textbf{inversion de dépendance} : les
+agents dépendent d'une interface abstraite (\texttt{LLMClient}) et non d'un
+fournisseur concret, ce qui permet d'en changer sans modifier le reste du
+code.
+
+\section{Ingestion, validation et profilage adaptatif}
+L'agent d'\textbf{Ingestion} charge le fichier (l'extension détermine le
+lecteur pandas approprié) puis valide sa structure (doublons, colonnes
+entièrement vides, nombre de lignes). Le profilage, cœur de la généralité du
+système, attribue à chaque colonne un rôle sémantique. L'extrait~\ref{lst:profiler}
+illustre l'inférence du rôle pour les colonnes textuelles, où la détection
+\textbf{géographique} est testée en priorité.
+
+\begin{lstlisting}[language=Python,caption={Inférence de rôle pour une colonne textuelle (\texttt{profiler.py}).},label=lst:profiler]
+# 4. Chaine de caracteres / objet
+else:
+    # La geographie est testee en premier et prime sur la cardinalite :
+    # une colonne de noms de pays est geographique meme tres cardinale.
+    if _looks_like_geo(s, geo_match_threshold):
+        role = ColumnRole.GEO
+    elif _looks_like_identifier(str(col), card, row_count, is_numeric=False):
+        role = ColumnRole.IDENTIFIER
+    elif card <= categorical_max_cardinality:
+        role = ColumnRole.DIMENSION
+    elif card > categorical_max_cardinality and card / max(row_count, 1) > 0.5:
+        role = ColumnRole.TEXT
+    else:
+        role = ColumnRole.HIGH_CARD_DIM
+\end{lstlisting}
+
+La détection géographique compare les valeurs distinctes de la colonne à un
+référentiel d'environ 250 noms de pays ; si une fraction suffisante
+correspond (seuil paramétrable, 0,6 par défaut), la colonne devient une
+dimension géographique exploitable par la carte.
+
+\section{Calcul adaptatif des indicateurs (KPI)}
+L'agent \textbf{KPI} récupère une liste généreuse de KPIs candidats déduits du
+profil, en \textbf{cure} un sous-ensemble pertinent (jugement métier du LLM),
+puis les calcule de façon déterministe. Chaque KPI est décrit par une
+spécification JSON (identifiant, titre, type, mesure, agrégation, format), ce
+qui permet un calcul générique. La figure~\ref{fig:kpis} montre les cartes
+d'indicateurs telles qu'elles apparaissent dans le rapport.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_rapport_kpis.png}
+\caption{Indicateurs clés calculés automatiquement (extrait du rapport).}
+\label{fig:kpis}
+\end{figure}
+
+\section{Visualisations et tableau de bord}
+L'agent \textbf{Dashboard} sélectionne un ensemble \textbf{équilibré} de
+graphiques (tendance, comparaison, distribution, composition, carte) et les
+construit avec Plotly. Le moteur choisit automatiquement le type de graphique
+selon les rôles des colonnes. La figure~\ref{fig:dashboard} présente le haut
+du tableau de bord généré.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.9\linewidth]{fig_dashboard.png}
+\caption{Tableau de bord interactif : navigation, indicateurs et début de la carte.}
+\label{fig:dashboard}
+\end{figure}
+
+\subsection{La carte géographique (choroplèthe)}
+Lorsqu'une colonne géographique est détectée, le moteur produit une
+\textbf{carte choroplèthe} mondiale agrégeant une mesure par pays. La
+figure~\ref{fig:carte} en donne un exemple : la distribution des buts à
+domicile cumulés par pays.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_carte.png}
+\caption{Carte choroplèthe : buts à domicile cumulés par pays.}
+\label{fig:carte}
+\end{figure}
+
+\subsection{Tendances temporelles}
+Lorsqu'une colonne de type date est présente, le moteur génère des séries
+temporelles, en agrégeant automatiquement par période adaptée au volume de
+points. Les figures~\ref{fig:serieH} et~\ref{fig:serieA} illustrent
+l'évolution des buts à domicile et à l'extérieur.
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}{0.49\linewidth}\centering
+  \includegraphics[width=\linewidth]{fig_serie_home.png}
+  \caption{Buts à domicile au fil du temps.}
+  \label{fig:serieH}
+\end{minipage}\hfill
+\begin{minipage}{0.49\linewidth}\centering
+  \includegraphics[width=\linewidth]{fig_serie_away.png}
+  \caption{Buts à l'extérieur au fil du temps.}
+  \label{fig:serieA}
+\end{minipage}
+\end{figure}
+
+\subsection{Comparaisons et distributions}
+Les graphiques en barres top-N classent les valeurs d'une dimension par mesure
+(figures~\ref{fig:topT} et~\ref{fig:topE}), tandis que les
+\textbf{histogrammes} révèlent la distribution des mesures
+(figure~\ref{fig:distribution}), faisant apparaître l'asymétrie typique du
+nombre de buts (forte concentration sur les faibles valeurs, longue traîne).
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.62\linewidth]{fig_distribution.png}
+\caption{Distribution des buts à domicile (histogramme).}
+\label{fig:distribution}
+\end{figure}
+
+\begin{figure}[ht]
+\centering
+\begin{minipage}{0.49\linewidth}\centering
+  \includegraphics[width=\linewidth]{fig_top_tournois.png}
+  \caption{Top tournois par buts à domicile.}
+  \label{fig:topT}
+\end{minipage}\hfill
+\begin{minipage}{0.49\linewidth}\centering
+  \includegraphics[width=\linewidth]{fig_top_equipes.png}
+  \caption{Top équipes par buts à domicile.}
+  \label{fig:topE}
+\end{minipage}
+\end{figure}
+
+\section{Analyses avancées : anomalies et segments}
+L'agent KPI enrichit l'analyse de deux familles d'insights, implémentés dans
+\texttt{src/core/insights.py}.
+
+\subsection{Détection d'anomalies}
+La détection repose sur un \textbf{score z modifié} fondé sur l'écart absolu
+médian (MAD), robuste aux valeurs extrêmes que l'on cherche précisément à
+isoler (extrait~\ref{lst:anomalies}).
+
+\begin{lstlisting}[language=Python,caption={Score z modifié robuste (\texttt{insights.py}).},label=lst:anomalies]
+def _modified_z(values):
+    median = np.median(values)
+    mad = np.median(np.abs(values - median))
+    if mad == 0:
+        return None  # pas de dispersion : repli sur l'ecart interquartile
+    return 0.6745 * (values - median) / mad
+\end{lstlisting}
+
+Toute valeur dont le score dépasse un seuil (3,5 par défaut) est signalée. La
+figure~\ref{fig:anomalies} montre la restitution dans le rapport.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_rapport_anomalies.png}
+\caption{Section « Anomalies » du rapport : valeurs aberrantes et exemple le plus extrême.}
+\label{fig:anomalies}
+\end{figure}
+
+\subsection{Comparaison de segments}
+Pour chaque dimension de faible cardinalité et chaque mesure, le moteur
+compare les moyennes par groupe et retient les écarts les plus marqués
+(figure~\ref{fig:segments}). Cette analyse met par exemple en évidence
+l'avantage du terrain dans l'étude de cas.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_rapport_segments.png}
+\caption{Section « Comparaison de segments » du rapport.}
+\label{fig:segments}
+\end{figure}
+
+\section{Orchestration et filets de sécurité}
+Le pipeline (\texttt{src/pipeline.py}) exécute les sept agents dans un ordre
+déterministe. Comme un agent peut, en pratique, omettre un appel d'outil, des
+\textbf{filets de sécurité} déterministes vérifient après chaque étape que les
+sorties attendues existent et, le cas échéant, invoquent eux-mêmes les outils
+manquants sous les permissions du rôle concerné. L'extrait~\ref{lst:fallback}
+illustre ce dispositif pour l'étape KPI.
+
+\begin{lstlisting}[language=Python,caption={Filet de sécurité de l'étape KPI (\texttt{pipeline.py}).},label=lst:fallback]
+elif stage == "kpi":
+    if not store.get("kpis"):
+        # ... calcul des KPIs si l'agent les a omis ...
+        _safe("kpi", "compute_kpis", {"kpi_ids": top_ids})
+    # Les insights sont independants des KPIs : on garantit chacun.
+    if store.get("anomalies") is None:
+        _safe("kpi", "detect_anomalies", {})
+    if store.get("segments") is None:
+        _safe("kpi", "compare_segments", {})
+\end{lstlisting}
+
+Ce mécanisme garantit qu'une exécution produit \textbf{toujours} des livrables
+complets, même en cas de défaillance d'un agent — le moteur déterministe
+devenant le filet de dernier recours.
+
+\section{Publication des livrables}
+L'agent de \textbf{Publication} assemble le tableau de bord interactif
+(\texttt{dashboard.html}) et fige l'état complet de l'exécution
+(\texttt{state.json}). L'agent \textbf{Reporter} produit ensuite le
+\textbf{rapport décisionnel} (\texttt{report.html}), structuré en sections :
+résumé, source des données, méthodologie, indicateurs, tableau de bord,
+conclusions, anomalies, comparaison de segments. Le rapport est exportable en
+\textbf{PDF} (impression navigateur) et en \textbf{HTML} autonome ; chaque
+graphique est exportable en image. La figure~\ref{fig:entete} montre l'en-tête
+du rapport avec sa barre d'actions et de navigation.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_rapport_entete.png}
+\caption{En-tête du rapport : navigation (Accueil, Dashboard) et export (PDF, HTML).}
+\label{fig:entete}
+\end{figure}
+
+\section{Fiabilité : véracité des chiffres et suivi des coûts}
+
+\subsection{Vérification des chiffres du rapport}
+Pour contrer les hallucinations, chaque nombre cité dans les conclusions du
+rapport est \textbf{vérifié} face à l'ensemble des nombres réellement calculés
+(valeurs des KPIs, statistiques du profil, comptages, corrélations, valeurs
+d'anomalies, moyennes de segments), avec une tolérance absorbant les arrondis.
+Le rapport affiche alors un verdict : \emph{vérifié}, \emph{partiel} ou
+\emph{non vérifié}. La figure~\ref{fig:findings} montre le badge de
+vérification au-dessus des conclusions.
+
+\begin{figure}[ht]
+\centering
+\includegraphics[width=0.92\linewidth]{fig_rapport_findings.png}
+\caption{Conclusions du rapport avec le badge de vérification des chiffres.}
+\label{fig:findings}
+\end{figure}
+
+\subsection{Suivi de la consommation}
+\label{sec:couts}
+Le client LLM mesure, pour chaque appel, le nombre de jetons (entrée/sortie)
+et la latence ; le pipeline agrège ces mesures par agent et par exécution, et
+estime un coût à partir de prix paramétrables. Ces indicateurs sont restitués
+dans la vue d'exécution (figure~\ref{fig:pipeline}), assurant l'observabilité
+du système.
+
+\callout{Synthèse du chapitre}{Le système combine un moteur déterministe
+généraliste (profilage, KPIs, graphiques, carte, insights) et des agents qui
+curent et narrent. Les filets de sécurité garantissent des livrables complets,
+la vérification des chiffres assure la véracité, et le suivi des coûts apporte
+l'observabilité. Le chapitre suivant évalue l'ensemble.}

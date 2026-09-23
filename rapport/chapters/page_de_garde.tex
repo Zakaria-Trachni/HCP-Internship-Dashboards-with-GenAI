@@ -1,0 +1,68 @@
+% ---- Page de garde (style institutionnel ENSA Oujda) ---------------
+\begin{titlepage}
+\thispagestyle{empty}
+\centering
+
+% --- Fond plein page (vagues rouges) + blocs bas positionnés --------
+\begin{tikzpicture}[remember picture,overlay]
+  % Image de fond couvrant toute la page
+  \node[inner sep=0pt] at (current page.center)
+    {\includegraphics[width=\paperwidth,height=\paperheight]{background.png}};
+
+  % Auteurs (positions fixes, alignés par le haut, au-dessus des vagues)
+  \node[anchor=north west,align=left,text=ink,font={\large\linespread{1}\selectfont}]
+    at ([xshift=2.4cm,yshift=9.8cm]current page.south west)
+    {\textbf{Réalisé par :}\\[4pt]\auteurun\\\auteurdeux};
+  \node[anchor=north east,align=right,text=ink,font={\large\linespread{1}\selectfont}]
+    at ([xshift=-2.4cm,yshift=9.8cm]current page.south east)
+    {\textbf{Encadré par :}\\[4pt]\monencadrant};
+
+  % Membres du jury (centré, sous les auteurs)
+  \node[anchor=north,align=center,text=ink,font={\large\linespread{1}\selectfont}] (jurybloc)
+    at ([yshift=7.3cm]current page.south)
+    {\textbf{Membres du jury :}\\[4pt]Pr. Asmae El Mezouari\\\monencadrant};
+
+  % Année universitaire (écart garanti sous le bloc jury, au-dessus des vagues)
+  \node[anchor=north,text=accentdark,font=\large\bfseries,below=0.5cm of jurybloc]
+    {Année Universitaire \monannee};
+\end{tikzpicture}
+
+\vspace*{0.5cm}
+
+% --- En-tête institutionnel : Français | Logo | Arabe ---------------
+\noindent
+\begin{minipage}[c]{0.37\textwidth}\centering
+  \includegraphics[height=2.0cm]{entete_fr.png}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.24\textwidth}\centering
+  \includegraphics[height=2.7cm]{logo_ensa.png}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.37\textwidth}\centering
+  \includegraphics[height=2.0cm]{entete_arabe.png}
+\end{minipage}
+
+\vspace{1.1cm}
+
+{\LARGE\scshape École Nationale des Sciences Appliquées\\[2pt] d'Oujda\par}
+
+\vspace{1.3cm}
+
+{\Large\scshape Projet de Fin d'Année (PFA)\par}
+\vspace{5pt}
+{\large Filière : \mafiliere\par}
+
+\vspace{1.1cm}
+
+% --- Bloc titre encadré de filets rouges ---------------------------
+\noindent\textcolor{accentdark}{\rule{\linewidth}{1.4pt}}
+\vspace{0.55cm}
+
+{\Huge\bfseries \montitre\par}
+\vspace{0.5cm}
+{\large\itshape \monsoustitre\par}
+
+\vspace{0.55cm}
+\noindent\textcolor{accentdark}{\rule{\linewidth}{1.4pt}}
+
+\vfill
+\end{titlepage}

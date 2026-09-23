@@ -1,0 +1,163 @@
+% =====================================================================
+%  Rapport de Projet de Fin d'Année (PFA)
+%  MCP-Powered BI Ecosystem — Plateforme décisionnelle multi-agents
+%  ENSA Oujda — Ingénierie Data Science et Cloud Computing — 2025/2026
+%
+%  Compatible : pdfLaTeX (Overleaf) ET XeLaTeX / Tectonic.
+%  Compilation : `tectonic rapport.tex`  ou  upload sur Overleaf.
+% =====================================================================
+\documentclass[12pt,a4paper,oneside]{report}
+
+% ---- Moteur : branche pdfTeX vs XeTeX/LuaTeX ------------------------
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{inputenc}
+  \usepackage[T1]{fontenc}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
+
+\usepackage[french]{babel}
+\frenchsetup{SmallCapsFigTabCaptions=false,AutoSpacePunctuation=true}
+
+% ---- Mise en page ---------------------------------------------------
+\usepackage[a4paper,margin=2.5cm,headheight=15pt]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+\usepackage{microtype}
+
+% ---- Couleurs (charte teal/émeraude du projet) ---------------------
+\usepackage{xcolor}
+\definecolor{accent}{HTML}{0D9488}
+\definecolor{accentdark}{HTML}{047857}
+\definecolor{accentsoft}{HTML}{D1FAF2}
+\definecolor{ink}{HTML}{0F2A30}
+\definecolor{muted}{HTML}{5B7178}
+\definecolor{codebg}{HTML}{F4F8F7}
+\definecolor{codekw}{HTML}{047857}
+\definecolor{codestr}{HTML}{B45309}
+\definecolor{codecom}{HTML}{8AA0A5}
+% Couleurs des accents de la page de garde (marron/terracotta, assorti au logo ENSAO)
+\definecolor{coverred}{HTML}{9C5B45}
+\definecolor{coverdark}{HTML}{5E3526}
+\definecolor{coverpink}{HTML}{E8D2C7}
+\definecolor{coverpinklt}{HTML}{F6EAE3}
+
+% ---- Graphiques et schémas -----------------------------------------
+\usepackage{graphicx}
+\graphicspath{{figures/}{assets/}}
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric,arrows.meta,positioning,fit,backgrounds,calc}
+\usepackage{caption}
+\captionsetup{font=small,labelfont={bf,color=accentdark},margin=10pt}
+
+% ---- Tableaux -------------------------------------------------------
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+% ---- Code source ----------------------------------------------------
+\usepackage{listings}
+\lstdefinestyle{projet}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize\color{ink},
+  keywordstyle=\color{codekw}\bfseries,
+  stringstyle=\color{codestr},
+  commentstyle=\color{codecom}\itshape,
+  numberstyle=\tiny\color{muted},
+  numbers=left, numbersep=8pt,
+  showstringspaces=false,
+  breaklines=true, breakatwhitespace=true,
+  frame=single, rulecolor=\color{accentsoft},
+  framesep=6pt, xleftmargin=14pt,
+  tabsize=2, captionpos=b,
+  literate={é}{{\'e}}1 {è}{{\`e}}1 {à}{{\`a}}1 {ê}{{\^e}}1 {ô}{{\^o}}1 {î}{{\^i}}1 {ç}{{\c c}}1 {É}{{\'E}}1 {’}{{'}}1 {→}{{$\rightarrow$}}1 {–}{{-}}1,
+}
+\lstset{style=projet}
+\renewcommand{\lstlistingname}{Extrait de code}
+
+% ---- En-têtes / pieds de page --------------------------------------
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\nouppercase{\leftmark}}
+\fancyhead[R]{\small MCP-Powered BI Ecosystem}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% Titres de chapitres colorés
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{accentdark}}
+  {\chaptertitlename\ \thechapter}{14pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{0pt}{24pt}
+
+% ---- Liens ----------------------------------------------------------
+\usepackage[hidelinks]{hyperref}
+\hypersetup{
+  colorlinks=true, linkcolor=accentdark, urlcolor=accent, citecolor=accent,
+  pdftitle={Rapport PFA - MCP-Powered BI Ecosystem},
+  pdfauthor={Mohamed Rouane, Zakariae Trachni},
+}
+\usepackage{enumitem}
+\setlist{itemsep=2pt,topsep=3pt}
+
+% ---- Métadonnées du projet (À ADAPTER si besoin) -------------------
+\newcommand{\monetablissement}{École Nationale des Sciences Appliquées d'Oujda}
+\newcommand{\monuniversite}{Université Mohammed Premier}
+\newcommand{\mafiliere}{Ingénierie Data Science et Cloud Computing}
+\newcommand{\montitre}{MCP-Powered BI Ecosystem}
+\newcommand{\monsoustitre}{Une plateforme décisionnelle généraliste multi-agents orchestrée par le protocole MCP}
+\newcommand{\monencadrant}{Pr. Abdelmounaim Kerkri}
+\newcommand{\auteurun}{Mohamed Rouane}
+\newcommand{\auteurdeux}{Zakariae Trachni}
+\newcommand{\monannee}{2025 -- 2026}
+
+% Encadré « callout » réutilisable
+\newcommand{\callout}[2]{%
+  \begin{center}\begin{minipage}{0.95\linewidth}
+  \setlength{\fboxsep}{10pt}%
+  \colorbox{accentsoft}{\begin{minipage}{\dimexpr\linewidth-2\fboxsep}
+  \textbf{\color{accentdark}#1}\\[2pt]\small #2
+  \end{minipage}}
+  \end{minipage}\end{center}}
+
+\begin{document}
+
+% ---- Page de garde --------------------------------------------------
+\input{chapters/page_de_garde}
+
+% ---- Pages liminaires (numérotation romaine) -----------------------
+\pagenumbering{roman}
+\input{chapters/00_liminaires}
+
+\tableofcontents
+\listoffigures
+\listoftables
+\cleardoublepage
+
+% ---- Corps (numérotation arabe) ------------------------------------
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\input{chapters/01_introduction}
+\input{chapters/02_contexte_etat_art}
+\input{chapters/03_analyse_conception}
+\input{chapters/04_realisation}
+\input{chapters/05_tests_resultats}
+\input{chapters/06_conclusion}
+
+% ---- Bibliographie --------------------------------------------------
+\bibliographystyle{plain}
+\bibliography{references}
+\addcontentsline{toc}{chapter}{Bibliographie}
+
+% ---- Annexes --------------------------------------------------------
+\appendix
+\input{chapters/07_annexes}
+
+\end{document}

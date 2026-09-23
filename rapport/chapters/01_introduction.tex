@@ -1,0 +1,73 @@
+\chapter*{Introduction générale}
+\addcontentsline{toc}{chapter}{Introduction générale}
+\markboth{INTRODUCTION GÉNÉRALE}{}
+
+À l'ère du numérique, les organisations produisent et collectent des volumes
+de données sans précédent. Transformer ces données brutes en informations
+exploitables, puis en décisions éclairées, constitue l'enjeu central de la
+\textit{Business Intelligence} (BI). Pourtant, malgré la maturité des outils
+du marché (tableurs avancés, plateformes comme Power BI ou Tableau), la
+chaîne décisionnelle demeure largement \textbf{manuelle} : un analyste doit
+comprendre le schéma des données, choisir les indicateurs clés de performance
+(KPI), concevoir des visualisations, puis rédiger un rapport de synthèse.
+Chaque nouveau jeu de données relance ce cycle coûteux en temps et en
+expertise.
+
+L'émergence des \textbf{grands modèles de langage} (LLM) et des
+\textbf{agents d'intelligence artificielle} ouvre la voie à une automatisation
+beaucoup plus poussée de cette chaîne. Toutefois, confier l'intégralité de
+l'analyse à un modèle de langage se heurte à deux écueils : les modèles
+\emph{hallucinent} (ils inventent des chiffres ou des colonnes inexistantes)
+et peinent à manipuler de manière fiable des jeux de données volumineux. À
+l'inverse, une automatisation purement algorithmique produit des analyses
+rigides et dépourvues de discernement métier.
+
+C'est dans cette tension que s'inscrit notre projet de fin d'année. Nous
+proposons \textbf{\montitre}, un écosystème décisionnel qui réconcilie ces
+deux mondes : un \textbf{moteur déterministe} garantit l'exactitude des
+calculs et la robustesse face à n'importe quel schéma de données, tandis
+qu'une \textbf{équipe d'agents IA} apporte le jugement, la curation et la
+narration. L'ensemble est orchestré par le \textbf{protocole MCP}
+(\textit{Model Context Protocol}), un standard récent qui expose les
+capacités du système comme un ensemble d'outils contrôlés par permissions et
+mobilisables par les agents.
+
+L'originalité de l'approche tient à son caractère \textbf{généraliste} : le
+système ne fait \emph{aucune} hypothèse sur le domaine métier. Qu'il s'agisse
+de ventes, de logistique, de ressources humaines ou de données sportives, la
+plateforme découvre seule la structure des données, en déduit les indicateurs
+et visualisations pertinents, puis produit un tableau de bord interactif et un
+rapport décisionnel complet.
+
+\section*{Problématique}
+Comment concevoir une plateforme de Business Intelligence capable d'analyser
+\textbf{automatiquement} et de manière \textbf{fiable} n'importe quel jeu de
+données tabulaire, en combinant la rigueur d'un moteur déterministe et le
+discernement d'agents fondés sur des modèles de langage, tout en garantissant
+la traçabilité, la maîtrise des coûts et la véracité des résultats produits~?
+
+\section*{Objectifs}
+Le projet poursuit les objectifs suivants :
+\begin{itemize}
+  \item concevoir une architecture \textbf{multi-agents} orchestrée par un
+        serveur MCP, avec un contrôle d'accès par rôle ;
+  \item développer un \textbf{moteur adaptatif} de profilage, de calcul
+        d'indicateurs et de génération de visualisations, indépendant du
+        domaine métier ;
+  \item produire automatiquement un \textbf{tableau de bord interactif} et un
+        \textbf{rapport décisionnel} (web et PDF) reproductibles ;
+  \item intégrer des mécanismes de \textbf{fiabilité} : filets de sécurité,
+        vérification des chiffres, suivi des coûts ;
+  \item valider l'approche par une \textbf{étude de cas} réelle.
+\end{itemize}
+
+\section*{Organisation du rapport}
+Ce rapport s'articule autour de quatre chapitres. Le
+\textbf{chapitre~\ref{chap:contexte}} présente le contexte général, la
+problématique et l'état de l'art (BI, LLM, agents, protocole MCP). Le
+\textbf{chapitre~\ref{chap:conception}} détaille l'analyse des besoins et la
+conception de l'architecture. Le \textbf{chapitre~\ref{chap:realisation}}
+décrit la réalisation et l'implémentation des différents modules. Enfin, le
+\textbf{chapitre~\ref{chap:tests}} expose la stratégie de tests, les
+résultats obtenus et une étude de cas approfondie, avant la conclusion et les
+perspectives.

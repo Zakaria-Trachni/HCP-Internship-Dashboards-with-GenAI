@@ -1,0 +1,106 @@
+# =====================================================================
+# Agent role / tool-permission matrix.
+# This file is the single source of truth for what each agent is allowed
+# to do. The Orchestrator reads this at startup; the MCP server enforces
+# it on every tool call (deny-by-default outside the allowlist).
+# =====================================================================
+
+agents:
+  orchestrator:
+    description: >
+      Plans the run, delegates to specialist agents in order, and
+      decides when the pipeline is complete. Does not touch data
+      directly.
+    tools:
+      - list_agents
+      - get_run_state
+      - set_run_state
+
+  ingestion:
+    description: >
+      Loads the raw file (CSV/Excel/JSON), runs a structural validation
+      pass and registers the dataset in the run store.
+    tools:
+      - load_dataset
+      - validate_dataset
+
+  data_prep:
+    description: >
+      Profiles the dataset (types, cardinality, missingness, time
+      coverage), proposes cleaning operations and applies them.
+    tools:
+      - profile_dataset
+      - clean_dataset
+
+  kpi:
+    description: >
+      Metrics & insights. Inspects the profile, curates and computes a
+      meaningful KPI shortlist, then surfaces anomalies (outliers) and
+      segment (group-vs-group) comparisons for the report.
+    tools:
+      - profile_dataset
+      - suggest_kpis
+      - compute_kpis
+      - detect_anomalies
+      - compare_segments
+
+  dashboard:
+    description: >
+      Decides which charts answer the most useful questions about the
+      dataset and builds them as Plotly figures.
+    tools:
+      - profile_dataset
+      - suggest_charts
+      - build_chart
+
+  publishing:
+    description: >
+      Bundles charts + KPIs into a self-contained interactive HTML
+      dashboard and registers all artifacts in the run store.
+    tools:
+      - build_dashboard
+      - publish_artifacts
+
+  reporter:
+    description: >
+      Writes the final BI report (HTML): data source, methodology,
+      KPI summary, dashboard tour, narrative findings.
+    tools:
+      - get_run_state
+      - generate_report
+
+# =====================================================================
+# Adaptive engine tuning. These are dataset-agnostic heuristics that
+# decide how the engine interprets *any* schema. Tune carefully — they
+# define the "generalist" behavior.
+# =====================================================================
+
+engine:
+  # A numeric column with cardinality <= this is treated as an ID/code,
+  # not a measure (e.g. a 0/1 flag, status code).
+  numeric_id_cardinality_threshold: 10
+
+  # A text column with cardinality <= this is treated as a categorical
+  # dimension. Above it, treated as free text / high-cardinality ID.
+  categorical_max_cardinality: 50
+
+  # Fraction of non-null values that must successfully parse as dates
+  # for a string column to be considered a datetime dimension.
+  datetime_parse_threshold: 0.8
+
+  # Top-N to use when grouping by a high-cardinality categorical.
+  top_n: 15
+
+  # Correlation magnitude required to mention a pair in the report.
+  correlation_report_threshold: 0.5
+
+  # Fraction of a column's distinct values that must be recognizable
+  # country names for it to be treated as a geographic (map) column.
+  geo_match_threshold: 0.6
+
+  # Modified z-score magnitude above which a measure value is flagged as
+  # an outlier (robust MAD-based; 3.5 is the conventional cutoff).
+  anomaly_z_threshold: 3.5
+
+  # Minimum rows a group must have to be included in segment comparison.
+  segment_min_group_size: 20

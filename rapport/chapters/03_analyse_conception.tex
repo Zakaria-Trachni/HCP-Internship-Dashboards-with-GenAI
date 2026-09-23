@@ -1,0 +1,315 @@
+\chapter{Analyse et conception}
+\label{chap:conception}
+
+\callout{En bref}{Ce chapitre formalise les besoins, présente l'architecture
+en couches du système, détaille le serveur MCP et son registre d'outils
+permissionné, décrit les sept agents et leur matrice de permissions, expose le
+moteur déterministe adaptatif, et illustre la conception par des diagrammes UML.}
+
+\section{Spécification des besoins}
+
+\subsection{Besoins fonctionnels}
+Le système doit permettre à un utilisateur de :
+\begin{enumerate}
+  \item \textbf{téléverser} un jeu de données tabulaire (CSV, Excel, JSON) ;
+  \item déclencher une \textbf{analyse automatique} de bout en bout ;
+  \item suivre en \textbf{temps réel} l'avancement du traitement par étape ;
+  \item consulter un \textbf{tableau de bord interactif} (indicateurs et
+        graphiques) ;
+  \item consulter et \textbf{exporter} un \textbf{rapport décisionnel}
+        (page web, PDF, HTML) ;
+  \item retrouver et rouvrir les \textbf{exécutions passées} et leurs
+        artefacts.
+\end{enumerate}
+
+\subsection{Besoins non fonctionnels}
+\begin{description}
+  \item[Généralité.] Le système ne doit faire aucune hypothèse sur le domaine
+    métier ni sur les noms de colonnes.
+  \item[Fiabilité.] Une exécution doit toujours produire des livrables
+    complets, même en cas de défaillance d'un agent.
+  \item[Véracité.] Les chiffres du rapport doivent être vérifiables face aux
+    indicateurs effectivement calculés.
+  \item[Sûreté.] Chaque agent ne doit accéder qu'aux outils nécessaires à son
+    rôle (moindre privilège).
+  \item[Reproductibilité.] Chaque exécution doit être tracée dans un magasin
+    d'artefacts autonome.
+  \item[Observabilité.] La consommation (jetons, latence, coût estimé) doit
+    être mesurée et restituée.
+  \item[Portabilité.] Le système doit fonctionner avec un fournisseur de LLM
+    hébergé (Groq) ou local (Ollama).
+\end{description}
+
+\subsection{Acteurs et cas d'usage}
+L'acteur principal est l'\textbf{Analyste / Décideur}, qui interagit avec la
+plateforme via une interface web. La figure~\ref{fig:usecase} présente le
+diagramme de cas d'usage.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  uc/.style={ellipse,draw=accent,fill=accentsoft,text=ink,minimum width=4.3cm,
+    minimum height=1.05cm,align=center,font=\small,inner sep=1pt},
+  line/.style={accentdark,thick}]
+  % --- Acteur (stick figure soigné) ---
+  \begin{scope}[shift={(-4.4,-3.0)},accentdark,line width=1.2pt]
+    \draw[fill=accentsoft] (0,1) circle (0.34);        % tête
+    \draw (0,0.66) -- (0,-0.55);                        % tronc
+    \draw (-0.55,0.28) -- (0.55,0.28);                  % bras
+    \draw (0,-0.55) -- (-0.45,-1.3);                    % jambe gauche
+    \draw (0,-0.55) -- (0.45,-1.3);                     % jambe droite
+  \end{scope}
+  \node[font=\small\bfseries,text=ink] at (-4.4,-4.55) {Analyste};
+  \node[font=\scriptsize,text=muted] at (-4.4,-4.95) {/ Décideur};
+
+  % --- Frontière du système ---
+  \node[draw=accent,line width=1pt,rounded corners=8pt,fill=accent!3,
+        minimum width=7.8cm,minimum height=8.4cm,
+        label={[font=\small\bfseries,text=accentdark,yshift=-2pt]north:Plateforme BI multi-agents}]
+        (sys) at (2.2,-3.0) {};
+
+  % --- Cas d'usage (répartis verticalement) ---
+  \node[uc] (u1) at (2.2,-0.5) {Téléverser un jeu de données};
+  \node[uc] (u2) at (2.2,-1.75) {Lancer une analyse automatique};
+  \node[uc] (u3) at (2.2,-3.0) {Suivre la progression};
+  \node[uc] (u4) at (2.2,-4.25) {Consulter le tableau de bord};
+  \node[uc] (u5) at (2.2,-5.5) {Consulter / exporter le rapport};
+
+  % --- Liens acteur -> cas d'usage ---
+  \foreach \u in {u1,u2,u3,u4,u5} \draw[line] (-3.7,-3.0) -- (\u.west);
+\end{tikzpicture}
+\caption{Diagramme de cas d'usage de la plateforme.}
+\label{fig:usecase}
+\end{figure}
+
+\section{Architecture globale}
+L'architecture adopte une organisation \textbf{en couches} (figure~\ref{fig:archi}),
+qui sépare nettement les responsabilités et permet une évolution
+indépendante de chaque niveau.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  L/.style={rounded corners=5pt, draw=accent, line width=0.8pt,
+    minimum width=10.2cm, minimum height=1.05cm, text width=9.3cm,
+    align=left, font=\small, inner xsep=11pt, inner ysep=6pt},
+  down/.style={-{Stealth[length=3mm]}, accentdark, line width=1.4pt},
+  back/.style={-{Stealth[length=3mm]}, accent, line width=1pt, dashed}]
+
+  \node[L, fill=accent, text=white] (ui)
+    {\textbf{Couche présentation}\\[1pt]{\scriptsize Interface web FastAPI — téléversement, suivi, tableau de bord, rapport}};
+  \node[L, fill=accentsoft, below=7mm of ui] (orch)
+    {\textbf{Couche orchestration}\\[1pt]{\scriptsize Pipeline + filets de sécurité déterministes}};
+  \node[L, fill=accentsoft, below=7mm of orch] (ag)
+    {\textbf{Couche agents}\\[1pt]{\scriptsize Orchestrateur · Ingestion · Data Prep · KPI · Dashboard · Publication · Reporter}};
+  \node[L, fill=accentdark, text=white, below=7mm of ag] (mcp)
+    {\textbf{Serveur MCP}\\[1pt]{\scriptsize Registre de 14 outils + contrôle d'accès par rôle (refus par défaut)}};
+  \node[L, fill=accentsoft, below=7mm of mcp] (core)
+    {\textbf{Moteur déterministe}\\[1pt]{\scriptsize Profilage · KPIs · Graphiques · Insights · Validation}};
+  \node[L, fill=white, below=7mm of core] (store)
+    {\textbf{Magasin d'artefacts}\\[1pt]{\scriptsize \texttt{dashboard.html} · \texttt{report.html} · \texttt{state.json}}};
+
+  % Flux descendant : la requête traverse les couches
+  \foreach \a/\b in {ui/orch, orch/ag, ag/mcp, mcp/core, core/store}
+    \draw[down] (\a) -- (\b);
+
+  % Flux remontant : les résultats reviennent vers l'interface
+  \draw[back] (store.east) .. controls +(2.2,0) and +(2.2,0) .. (ui.east)
+    node[pos=0.5, fill=white, inner sep=1.5pt, text=muted, font=\scriptsize] {résultats};
+\end{tikzpicture}
+\caption{Architecture en couches du système.}
+\label{fig:archi}
+\end{figure}
+
+Le principe directeur est une \textbf{séparation des préoccupations} :
+\begin{itemize}
+  \item la \textbf{présentation} (interface web) ne contient aucune logique
+        d'analyse ;
+  \item l'\textbf{orchestration} séquence les agents et garantit la complétude
+        des résultats ;
+  \item les \textbf{agents} portent le jugement métier (curation, narration) ;
+  \item le \textbf{serveur MCP} médie tous les accès aux capacités et applique
+        les permissions ;
+  \item le \textbf{moteur déterministe} effectue tous les calculs ;
+  \item le \textbf{magasin d'artefacts} assure la traçabilité.
+\end{itemize}
+
+\section{Le serveur MCP et le registre d'outils}
+Le serveur MCP est le \textbf{point de passage obligé} entre les agents et les
+capacités du système. Il expose 14 \textbf{outils}, chacun décrit par un nom,
+une description en langage naturel et un \textbf{schéma JSON} de ses arguments
+— description directement exploitable par les LLM pour décider de leurs appels.
+Le tableau~\ref{tab:outils} récapitule ces outils.
+
+\begin{table}[ht]
+\centering\small
+\caption{Les outils exposés par le serveur MCP.}
+\label{tab:outils}
+\begin{tabularx}{\linewidth}{@{}lY@{}}
+\toprule
+\textbf{Outil} & \textbf{Rôle} \\
+\midrule
+\texttt{load\_dataset} & Charge un fichier (CSV/Excel/JSON) et l'enregistre. \\
+\texttt{validate\_dataset} & Contrôle structurel (doublons, colonnes vides…). \\
+\texttt{profile\_dataset} & Profile les colonnes (rôles, cardinalité, statistiques). \\
+\texttt{clean\_dataset} & Applique des opérations de nettoyage. \\
+\texttt{suggest\_kpis} / \texttt{compute\_kpis} & Propose puis calcule les indicateurs. \\
+\texttt{detect\_anomalies} & Détecte les valeurs aberrantes et pics temporels. \\
+\texttt{compare\_segments} & Compare une mesure entre groupes. \\
+\texttt{suggest\_charts} / \texttt{build\_chart} & Propose puis construit les graphiques. \\
+\texttt{build\_dashboard} & Assemble le tableau de bord interactif. \\
+\texttt{publish\_artifacts} & Fige l'état de l'exécution sur disque. \\
+\texttt{generate\_report} & Produit le rapport décisionnel (HTML). \\
+\texttt{get\_run\_state} / \texttt{set\_run\_state} & Lit / écrit l'état partagé de l'exécution. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Les sept agents et la matrice de permissions}
+Le système répartit le travail entre \textbf{sept agents spécialisés}. Chaque
+agent possède un \textbf{rôle}, une \textbf{invite système} (\textit{prompt})
+qui le cadre, et un \textbf{ensemble d'outils autorisés} défini dans le
+fichier de configuration \texttt{config.yaml}. Le serveur MCP applique ces
+permissions à chaque appel, selon un principe de \textbf{refus par défaut}.
+Le tableau~\ref{tab:permissions} présente cette matrice.
+
+\begin{table}[ht]
+\centering\small
+\caption{Matrice rôles / permissions (extraite de \texttt{config.yaml}).}
+\label{tab:permissions}
+\begin{tabularx}{\linewidth}{@{}lY@{}}
+\toprule
+\textbf{Agent} & \textbf{Outils autorisés} \\
+\midrule
+\textbf{Orchestrateur} & \texttt{list\_agents}, \texttt{get\_run\_state}, \texttt{set\_run\_state} \\
+\textbf{Ingestion} & \texttt{load\_dataset}, \texttt{validate\_dataset} \\
+\textbf{Data Prep} & \texttt{profile\_dataset}, \texttt{clean\_dataset} \\
+\textbf{KPI} & \texttt{profile\_dataset}, \texttt{suggest\_kpis}, \texttt{compute\_kpis}, \texttt{detect\_anomalies}, \texttt{compare\_segments} \\
+\textbf{Dashboard} & \texttt{profile\_dataset}, \texttt{suggest\_charts}, \texttt{build\_chart} \\
+\textbf{Publication} & \texttt{build\_dashboard}, \texttt{publish\_artifacts} \\
+\textbf{Reporter} & \texttt{get\_run\_state}, \texttt{generate\_report} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Rôles des agents}
+\begin{description}
+  \item[Orchestrateur.] Planifie l'exécution, observe la forme des données et
+    signale les risques. Il ne manipule pas directement les données.
+  \item[Ingestion.] Charge le fichier brut et valide sa structure.
+  \item[Data Prep.] Profile les colonnes et applique un nettoyage minimal et
+    sûr.
+  \item[KPI.] Sélectionne, parmi des candidats adaptatifs, les indicateurs les
+    plus pertinents, les calcule, puis détecte anomalies et écarts de segments.
+  \item[Dashboard.] Choisit un ensemble équilibré de graphiques et les
+    construit.
+  \item[Publication.] Assemble le tableau de bord HTML et fige les artefacts.
+  \item[Reporter.] Rédige le rapport décisionnel en s'appuyant exclusivement
+    sur l'état réel de l'exécution.
+\end{description}
+
+\subsection{Boucle d'exécution d'un agent}
+Chaque agent fonctionne selon une \textbf{boucle d'appel d'outils} bornée :
+le LLM reçoit l'invite et la liste de ses outils autorisés, décide d'un ou
+plusieurs appels, le serveur MCP exécute et renvoie les résultats, puis le
+modèle poursuit jusqu'à produire une réponse finale. Un mécanisme de
+\textbf{relance avec incitation} (\textit{retry-with-nudge}) corrige le cas
+fréquent où le modèle répond par du texte sans appeler ses outils.
+
+\section{Le moteur déterministe adaptatif}
+Le cœur « intelligent » généraliste ne peut reposer entièrement sur le LLM :
+face à des dizaines de colonnes, le modèle hallucinerait des noms et
+manquerait des agrégations évidentes. Le \textbf{moteur déterministe} produit
+donc une base adaptative riche, que les agents \emph{curent} et \emph{narrent}.
+
+\subsection{Profilage par rôles}
+Le profileur classe chaque colonne dans un \textbf{rôle sémantique} :
+\textbf{mesure} (numérique agrégeable), \textbf{dimension} (catégorielle de
+faible cardinalité), \textbf{date}, \textbf{identifiant}, \textbf{texte},
+\textbf{booléen}, ou \textbf{géographie} (valeurs reconnues comme des pays).
+Ces rôles, déduits par des heuristiques paramétrables, permettent à tout le
+reste du système d'agir de manière générique.
+
+\subsection{Génération adaptative}
+À partir des seuls rôles, le moteur dérive :
+\begin{itemize}
+  \item des \textbf{KPIs} candidats (totaux, moyennes, comptages distincts,
+        variation période sur période, part du segment dominant) ;
+  \item des \textbf{graphiques} candidats (séries temporelles, barres top-N,
+        distributions, nuages de points, parts, carte choroplèthe, heatmap de
+        corrélations) ;
+  \item des \textbf{insights} (anomalies, comparaisons de segments,
+        corrélations).
+\end{itemize}
+
+\section{Diagrammes de conception}
+La figure~\ref{fig:sequence} présente le diagramme de séquence simplifié d'une
+exécution, mettant en évidence l'orchestration des sept agents via le serveur
+MCP.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[font=\scriptsize,
+  life/.style={thick,muted,dashed},
+  msg/.style={-{Stealth[length=2mm]},accentdark},
+  head/.style={rectangle,rounded corners=3pt,draw=accent,fill=accentsoft,
+    text=ink,minimum width=1.7cm,minimum height=0.7cm,align=center,font=\scriptsize\bfseries}]
+  % lifelines
+  \node[head] (U) at (0,0) {Utilisateur};
+  \node[head] (P) at (2.6,0) {Pipeline};
+  \node[head] (A) at (5.2,0) {Agents};
+  \node[head] (M) at (7.8,0) {Serveur MCP};
+  \node[head] (C) at (10.4,0) {Moteur};
+  \foreach \n in {U,P,A,M,C} \draw[life] (\n.south) -- ++(0,-7.4);
+  % messages
+  \def\y{-0.7}
+  \draw[msg] (U.south|-0,\y) -- node[above]{téléverse} (P.south|-0,\y);
+  \def\y{-1.5}\draw[msg] (P.south|-0,\y) -- node[above]{lance étape} (A.south|-0,\y);
+  \def\y{-2.3}\draw[msg] (A.south|-0,\y) -- node[above]{appelle outil} (M.south|-0,\y);
+  \def\y{-3.1}\draw[msg] (M.south|-0,\y) -- node[above]{exécute} (C.south|-0,\y);
+  \def\y{-3.9}\draw[msg] (C.south|-0,\y) -- node[above]{résultat} (M.south|-0,\y);
+  \def\y{-4.7}\draw[msg] (M.south|-0,\y) -- node[above]{renvoie} (A.south|-0,\y);
+  \def\y{-5.5}\draw[msg] (A.south|-0,\y) -- node[above]{état mis à jour} (P.south|-0,\y);
+  \def\y{-6.6}\draw[msg] (P.south|-0,\y) -- node[above]{artefacts (dashboard, rapport)} (U.south|-0,\y);
+  \node[text=muted] at (5.2,-7.0) {\footnotesize\itshape Répété pour les 7 agents : Ingestion → Orchestrateur → Data Prep → KPI → Dashboard → Publication → Reporter};
+\end{tikzpicture}
+\caption{Diagramme de séquence simplifié d'une exécution du pipeline.}
+\label{fig:sequence}
+\end{figure}
+
+\subsection{Vue en composants}
+La figure~\ref{fig:composants} présente l'organisation en composants
+logiciels et leurs dépendances. Le pipeline dépend des agents, qui dépendent
+tous du serveur MCP ; celui-ci est le seul à dépendre du moteur déterministe
+et du client LLM. Cette dépendance \emph{en entonnoir} matérialise le rôle de
+médiateur unique du serveur MCP.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  comp/.style={rectangle,draw=accent,fill=white,text=ink,rounded corners=3pt,
+    minimum height=0.95cm,minimum width=2.7cm,align=center,font=\scriptsize\bfseries},
+  pkg/.style={rectangle,draw=accentdark,fill=accentsoft,text=ink,rounded corners=3pt,
+    minimum height=0.95cm,minimum width=2.7cm,align=center,font=\scriptsize\bfseries},
+  dep/.style={-{Stealth[length=2.2mm]},muted,thick}]
+  \node[comp] (ui) at (0,4) {ui\\(FastAPI)};
+  \node[comp] (pipe) at (0,2.6) {pipeline.py};
+  \node[comp] (agents) at (0,1.2) {agents\\(7 agents)};
+  \node[pkg] (mcp) at (0,-0.3) {mcp\_server\\(outils + perms)};
+  \node[pkg] (core) at (-2.9,-2.0) {core\\(moteur)};
+  \node[pkg] (llm) at (2.9,-2.0) {llm\\(Groq/Ollama)};
+  \node[comp] (store) at (0,-3.6) {Magasin\\d'artefacts};
+  \draw[dep] (ui)--(pipe); \draw[dep] (pipe)--(agents); \draw[dep] (agents)--(mcp);
+  \draw[dep] (mcp)--(core); \draw[dep] (mcp)--(llm);
+  \draw[dep] (agents.east) to[bend left=30] (llm.north);
+  \draw[dep] (core)--(store); \draw[dep] (mcp)--(store);
+\end{tikzpicture}
+\caption{Diagramme de composants et dépendances.}
+\label{fig:composants}
+\end{figure}
+
+\callout{Synthèse du chapitre}{L'architecture en couches isole présentation,
+orchestration, agents, serveur MCP, moteur et artefacts. Le serveur MCP
+centralise 14 outils et applique une matrice de permissions stricte aux sept
+agents. Le moteur déterministe garantit la généralité ; les agents apportent le
+jugement. Le chapitre suivant détaille la réalisation.}

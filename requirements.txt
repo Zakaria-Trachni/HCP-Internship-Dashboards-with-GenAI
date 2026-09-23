@@ -1,0 +1,26 @@
+# Core data + viz
+pandas>=2.1.0
+numpy>=1.26.0
+openpyxl>=3.1.0
+plotly>=5.18.0
+scipy>=1.11.0
+
+# Web UI
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+jinja2>=3.1.0
+python-multipart>=0.0.9
+pydantic>=2.6.0
+
+# MCP server
+mcp>=1.0.0
+
+# LLM clients
+groq>=0.11.0
+ollama>=0.3.0
+httpx>=0.27.0
+
+# Config / misc
+python-dotenv>=1.0.0
+pyyaml>=6.0.1
+rich>=13.7.0

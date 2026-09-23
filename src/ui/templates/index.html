@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Upload a dataset · MCP-Powered BI Ecosystem{% endblock %}
+{% block site_meta %}LLM: <code>{{ provider }}</code> · <code>{{ model }}</code>{% endblock %}
+
+{% block main %}
+<section class="hero">
+  <h1>Drop in any dataset.</h1>
+  <p>
+    The pipeline profiles the data, picks meaningful KPIs and charts, and
+    publishes both an interactive dashboard and a styled HTML BI report.
+    No column-name assumptions, no hardcoded use case.
+  </p>
+</section>
+
+<section class="card">
+  <h2>1. Upload your data</h2>
+  <p class="muted">Supported formats: <code>.csv</code>, <code>.xlsx</code>, <code>.xls</code>, <code>.json</code></p>
+  <form action="/upload" method="post" enctype="multipart/form-data" class="upload-form">
+    <input type="file" name="file" accept=".csv,.xlsx,.xls,.json,.txt" required />
+    <button type="submit" class="btn-primary">Run the pipeline</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>The seven agents</h2>
+  <div class="agent-grid">
+    <div class="agent"><strong>Orchestrator</strong><p>Plans the run, summarizes shape and risks.</p></div>
+    <div class="agent"><strong>Ingestion</strong><p>Loads the raw file and validates structure.</p></div>
+    <div class="agent"><strong>Data Prep</strong><p>Profiles columns; applies minimal, safe cleaning.</p></div>
+    <div class="agent"><strong>KPI</strong><p>Curates a meaningful subset of adaptive KPI candidates.</p></div>
+    <div class="agent"><strong>Dashboard</strong><p>Picks a balanced chart set and renders each one.</p></div>
+    <div class="agent"><strong>Publishing</strong><p>Assembles the interactive dashboard HTML.</p></div>
+    <div class="agent"><strong>Reporter</strong><p>Writes the final BI report grounded in actual KPIs.</p></div>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Past runs</h2>
+  {% if past_runs %}
+  <table class="runs">
+    <thead>
+      <tr><th>Run ID</th><th>Created</th><th>Artifacts</th></tr>
+    </thead>
+    <tbody>
+      {% for r in past_runs %}
+      <tr>
+        <td><code>{{ r.run_id }}</code></td>
+        <td>{{ r.created_at }}</td>
+        <td>
+          {% if r.has_dashboard %}<a href="/run/{{ r.run_id }}/dashboard" target="_blank">Dashboard</a>{% endif %}
+          {% if r.has_report %} · <a href="/run/{{ r.run_id }}/report" target="_blank">Report</a>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No past runs yet. Upload a dataset above to get started.</p>
+  {% endif %}
+</section>
+{% endblock %}

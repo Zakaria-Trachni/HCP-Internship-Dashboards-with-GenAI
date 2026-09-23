@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}Run {{ entry.run_token }} · MCP-Powered BI Ecosystem{% endblock %}
+{% block site_meta %}
+  Source: <code>{{ entry.source_name }}</code>
+{% endblock %}
+
+{% block main %}
+<section class="card">
+  <div class="run-header">
+    <div>
+      <h1 class="run-title">Pipeline run</h1>
+      <div class="muted">Token <code>{{ entry.run_token }}</code></div>
+    </div>
+    <div id="run-status" class="status-pill status-{{ entry.status }}">{{ entry.status }}</div>
+  </div>
+
+  <div id="run-usage" class="run-usage" style="display:none;"></div>
+  <div id="findings-verification" class="verify-banner" style="display:none;"></div>
+
+  <div id="artifact-links" class="artifact-links" style="display:none;">
+    <a id="link-dashboard" class="btn-primary" target="_blank">Open dashboard →</a>
+    <a id="link-report" class="btn-secondary" target="_blank">Open BI report →</a>
+  </div>
+</section>
+
+<section class="card">
+  <h2>Stage progress</h2>
+  <ol id="stages" class="stage-list">
+    {% for stage in ["ingestion", "orchestrator", "data_prep", "kpi", "dashboard", "publishing", "reporter"] %}
+    <li id="stage-{{ stage }}" class="stage stage-pending">
+      <div class="stage-name">{{ stage }}</div>
+      <div class="stage-status">pending</div>
+      <div class="stage-summary"></div>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+
+<section class="card" id="agent-outputs-card" style="display:none;">
+  <h2>Agent summaries</h2>
+  <div id="agent-outputs"></div>
+</section>
+
+<section class="card" id="error-card" style="display:none;">
+  <h2>Error</h2>
+  <pre id="error-pre"></pre>
+</section>
+
+<script>
+const RUN_TOKEN = "{{ entry.run_token }}";
+
+function setStageStatus(stage, status, summary) {
+  const el = document.getElementById("stage-" + stage);
+  if (!el) return;
+  el.classList.remove("stage-pending", "stage-started", "stage-completed", "stage-failed");
+  el.classList.add("stage-" + status);
+  el.querySelector(".stage-status").textContent = status;
+  if (summary) el.querySelector(".stage-summary").textContent = summary;
+}
+
+function usageLine(u, label) {
+  const parts = [];
+  parts.push(`${(u.total_tokens || 0).toLocaleString()} tokens`);
+  if (u.est_cost_usd && u.est_cost_usd > 0) parts.push(`~$${u.est_cost_usd.toFixed(4)} est.`);
+  if (u.latency_ms) parts.push(`${(u.latency_ms / 1000).toFixed(1)}s`);
+  if (u.llm_calls) parts.push(`${u.llm_calls} LLM call${u.llm_calls === 1 ? "" : "s"}`);
+  const body = parts.join(" · ");
+  return label ? `<strong>${label}:</strong> ${body}` : body;
+}
+
+function renderVerification(v) {
+  const el = document.getElementById("findings-verification");
+  if (!el || !v || v.checked === undefined) return;
+  el.style.display = "block";
+  el.classList.remove("verify-ok", "verify-warn", "verify-none");
+  if (v.verdict === "verified") {
+    el.classList.add("verify-ok");
+    el.innerHTML = `&#10003; All ${v.checked} quantitative claim(s) in the report verified against computed KPIs.`;
+  } else if (v.verdict === "partial") {
+    el.classList.add("verify-warn");
+    const offenders = (v.unsupported || []).map(x => x.number).join(", ");
+    el.innerHTML = `&#9888; ${v.supported}/${v.checked} claim(s) verified. Unmatched number(s): ${offenders}.`;
+  } else {
+    el.classList.add("verify-none");
+    el.innerHTML = `&#9888; Could not verify the report's numbers against computed KPIs.`;
+  }
+}
+
+async function poll() {
+  try {
+    const r = await fetch("/api/run/" + RUN_TOKEN);
+    if (!r.ok) return;
+    const data = await r.json();
+
+    document.getElementById("run-status").textContent = data.status;
+    document.getElementById("run-status").className = "status-pill status-" + data.status;
+
+    for (const ev of data.progress) {
+      if (ev.stage === "run") continue;
+      let summary = "";
+      if (ev.status === "completed" && ev.payload && ev.payload.summary) {
+        summary = ev.payload.summary;
+      } else if (ev.status === "failed" && ev.payload && ev.payload.error) {
+        summary = ev.payload.error;
+      }
+      setStageStatus(ev.stage, ev.status, summary);
+    }
+
+    // Run-level token / cost / latency total.
+    if (data.usage_total && data.usage_total.total_tokens) {
+      const u = data.usage_total;
+      const usageEl = document.getElementById("run-usage");
+      usageEl.style.display = "block";
+      usageEl.innerHTML = usageLine(u, "Run total");
+    }
+
+    // Findings verification verdict (shown once the reporter finishes).
+    if (data.findings_validation) {
+      renderVerification(data.findings_validation);
+    }
+
+    if (data.agent_outputs && data.agent_outputs.length) {
+      const card = document.getElementById("agent-outputs-card");
+      const list = document.getElementById("agent-outputs");
+      card.style.display = "block";
+      list.innerHTML = data.agent_outputs.map(a => {
+        const nudge = a.nudges_used
+          ? `<span class="nudge-badge" title="The agent skipped its tools and was prompted to retry">nudged ×${a.nudges_used}</span>`
+          : "";
+        const usage = (a.usage && a.usage.total_tokens)
+          ? `<div class="agent-usage">${usageLine(a.usage, null)}</div>`
+          : "";
+        return `
+        <div class="agent-output">
+          <div class="agent-output-header">
+            <span class="agent-output-stage">${a.stage} ${nudge}</span>
+            <span class="muted">${a.steps} step(s)</span>
+          </div>
+          <div class="agent-output-text">${(a.final_text || "").replace(/&/g,"&amp;").replace(/</g,"&lt;")}</div>
+          ${usage}
+        </div>`;
+      }).join("");
+    }
+
+    if (data.status === "completed") {
+      const linksDiv = document.getElementById("artifact-links");
+      linksDiv.style.display = "flex";
+      document.getElementById("link-dashboard").href = "/run/" + RUN_TOKEN + "/dashboard";
+      document.getElementById("link-report").href = "/run/" + RUN_TOKEN + "/report";
+      return; // stop polling
+    }
+
+    if (data.status === "failed") {
+      const card = document.getElementById("error-card");
+      card.style.display = "block";
+      document.getElementById("error-pre").textContent = data.error || "(unknown error)";
+      return;
+    }
+  } catch (e) {
+    console.error(e);
+  }
+  setTimeout(poll, 1500);
+}
+
+poll();
+</script>
+{% endblock %}

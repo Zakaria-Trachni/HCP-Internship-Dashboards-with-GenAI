@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+.env
+runs/
+!runs/.gitkeep
+.pytest_cache/
+.DS_Store
+*.log

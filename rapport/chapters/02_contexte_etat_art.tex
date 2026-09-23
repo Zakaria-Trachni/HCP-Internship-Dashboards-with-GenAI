@@ -1,0 +1,261 @@
+\chapter{Contexte général et état de l'art}
+\label{chap:contexte}
+
+\callout{En bref}{Ce chapitre situe le projet dans son cadre académique, rappelle
+les fondements de la Business Intelligence et de sa chaîne décisionnelle, expose
+les limites des outils existants, puis dresse l'état de l'art des briques
+technologiques mobilisées : grands modèles de langage, agents d'IA et protocole MCP.}
+
+\section{Cadre du projet}
+Ce travail s'inscrit dans le cadre du \textbf{Projet de Fin d'Année (PFA)} de
+la filière \textit{\mafiliere} à l'\textbf{\monetablissement}. Le PFA constitue
+un jalon pédagogique majeur : il vise à confronter les étudiants à un problème
+d'ingingénierie réaliste, à mobiliser de façon intégrée les connaissances
+acquises (programmation, science des données, génie logiciel, intelligence
+artificielle) et à développer des compétences de conception, de gestion de
+projet et de communication scientifique.
+
+Le sujet retenu se situe à l'intersection de trois domaines en pleine
+expansion : la \textbf{Business Intelligence}, l'\textbf{ingénierie des données}
+et l'\textbf{IA générative}. Il répond à une préoccupation concrète des
+organisations : réduire le temps et l'expertise nécessaires pour transformer
+des données brutes en connaissances décisionnelles.
+
+\section{La Business Intelligence et la chaîne décisionnelle}
+
+\subsection{Définition et finalité}
+La \textbf{Business Intelligence} (informatique décisionnelle) désigne
+l'ensemble des méthodes, des processus et des technologies permettant de
+collecter, d'organiser, d'analyser et de restituer les données d'une
+organisation afin d'éclairer la prise de décision. Son objectif n'est pas la
+donnée pour elle-même, mais la \emph{connaissance actionnable} : répondre aux
+questions « que s'est-il passé ?\,», « pourquoi ?\,» et « que faire ?\,».
+
+\subsection{La chaîne décisionnelle}
+La création de valeur à partir des données suit classiquement une chaîne en
+plusieurs maillons, illustrée par la figure~\ref{fig:chaine}.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  node distance=4pt and 14pt,
+  box/.style={rectangle,rounded corners=4pt,draw=accent,fill=accentsoft,
+    text=ink,minimum height=1.3cm,text width=2.4cm,align=center,font=\small\bfseries},
+  arr/.style={-{Stealth[length=3mm]},accentdark,thick}]
+  \node[box] (a) {Données brutes};
+  \node[box,right=of a] (b) {Ingestion \& validation};
+  \node[box,right=of b] (c) {Préparation \& nettoyage};
+  \node[box,right=of c] (d) {Analyse \& KPIs};
+  \node[box,right=of d] (e) {Restitution \& décision};
+  \draw[arr] (a)--(b); \draw[arr] (b)--(c); \draw[arr] (c)--(d); \draw[arr] (d)--(e);
+\end{tikzpicture}
+\caption{La chaîne décisionnelle classique de la Business Intelligence.}
+\label{fig:chaine}
+\end{figure}
+
+Chaque maillon mobilise des savoir-faire distincts :
+\begin{itemize}
+  \item \textbf{Ingestion} : récupération des données depuis des sources
+        hétérogènes (fichiers, bases de données, API) et contrôle de leur
+        intégrité ;
+  \item \textbf{Préparation} : nettoyage, traitement des valeurs manquantes,
+        typage, normalisation ;
+  \item \textbf{Analyse} : définition et calcul des indicateurs clés de
+        performance (KPI), exploration statistique ;
+  \item \textbf{Restitution} : conception de tableaux de bord et de rapports
+        destinés aux décideurs.
+\end{itemize}
+
+\subsection{Notions d'indicateurs, dimensions et mesures}
+La modélisation décisionnelle distingue traditionnellement les
+\textbf{mesures} (grandeurs numériques agrégeables : chiffre d'affaires,
+quantités, buts marqués) des \textbf{dimensions} (axes d'analyse catégoriels
+ou temporels : région, produit, date) selon lesquels les mesures sont
+ventilées. Un \textbf{KPI} (\textit{Key Performance Indicator}) est une
+mesure synthétique, souvent agrégée selon une ou plusieurs dimensions,
+choisie pour sa pertinence métier. Cette distinction, fondamentale, est au
+cœur de l'approche adaptative développée dans ce projet
+(chapitre~\ref{chap:realisation}).
+
+\section{Problématique : les limites des outils BI classiques}
+Malgré leur richesse fonctionnelle, les solutions de BI du marché présentent
+plusieurs limites structurantes :
+
+\begin{description}
+  \item[Forte dépendance à l'expertise.] La conception d'un tableau de bord
+    pertinent suppose une bonne compréhension métier \emph{et} technique.
+    L'analyste reste un goulot d'étranglement.
+  \item[Travail répétitif et chronophage.] Chaque nouveau jeu de données
+    impose de reparcourir la chaîne décisionnelle : exploration, choix des
+    indicateurs, construction des graphiques, rédaction.
+  \item[Spécialisation par cas d'usage.] Les solutions sont souvent
+    paramétrées pour un domaine précis (BI commerciale, BI RH), avec des
+    hypothèses figées sur la nature des colonnes.
+  \item[Restitution manuelle.] La rédaction du rapport narratif — pourtant
+    essentielle à la décision — demeure entièrement humaine.
+\end{description}
+
+Ces limites motivent la recherche d'une plateforme \textbf{généraliste} et
+\textbf{automatisée}, capable de s'adapter à n'importe quel schéma de données
+et de produire, sans intervention humaine, l'ensemble des livrables
+décisionnels. Le tableau~\ref{tab:comparaison} synthétise l'écart entre
+l'approche traditionnelle et celle que nous proposons.
+
+\begin{table}[ht]
+\centering\small
+\caption{Comparaison entre la BI traditionnelle et l'approche proposée.}
+\label{tab:comparaison}
+\begin{tabularx}{\linewidth}{@{}lYY@{}}
+\toprule
+\textbf{Critère} & \textbf{BI traditionnelle} & \textbf{Approche proposée} \\
+\midrule
+Choix des KPIs & Manuel, par un expert & Automatique et adaptatif \\
+Conception des graphiques & Manuelle & Automatique selon les rôles \\
+Rédaction du rapport & Humaine & Générée par agents IA \\
+Adaptation au domaine & Paramétrage spécifique & Aucune hypothèse métier \\
+Délai d'obtention & Heures à jours & Quelques secondes \\
+Véracité des chiffres & Confiance humaine & Vérification automatique \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Objectifs et périmètre}
+Le périmètre du projet couvre l'intégralité de la chaîne décisionnelle, de
+l'ingestion d'un fichier tabulaire jusqu'à la production d'un rapport
+décisionnel. Les choix structurants sont les suivants :
+\begin{itemize}
+  \item support des formats \texttt{CSV}, \texttt{Excel} et \texttt{JSON} ;
+  \item \textbf{aucune} configuration spécifique au domaine métier ;
+  \item génération automatique d'un tableau de bord interactif et d'un
+        rapport (web + PDF) ;
+  \item exécution locale, reproductible, avec un magasin d'artefacts par
+        exécution.
+\end{itemize}
+Sont hors périmètre : la connexion temps réel à des bases de données de
+production, la gestion multi-utilisateurs et le déploiement à l'échelle, qui
+constituent des perspectives (voir la conclusion générale).
+
+\section{État de l'art}
+
+\subsection{Les grands modèles de langage (LLM)}
+Un \textbf{grand modèle de langage} est un réseau de neurones, fondé sur
+l'architecture \textit{Transformer}~\cite{vaswani2017attention}, entraîné sur
+d'immenses corpus textuels pour prédire le mot suivant. Au-delà de la
+génération de texte, ces modèles manifestent des capacités de raisonnement, de
+synthèse et de \emph{suivi d'instructions}. Une avancée déterminante pour notre
+projet est l'\textbf{appel d'outils} (\textit{tool use} / \textit{function
+calling})~: le modèle peut décider d'invoquer une fonction externe avec des
+arguments structurés, puis exploiter le résultat. C'est précisément ce
+mécanisme qui permet à un LLM de piloter un système logiciel plutôt que de se
+contenter de produire du texte.
+
+Nous mobilisons des modèles performants tels que \textbf{Llama~3.3}~\cite{llama3}
+servis par l'infrastructure \textbf{Groq} (inférence à très faible latence), ou
+des modèles exécutés localement via \textbf{Ollama}. Les LLM présentent
+néanmoins deux faiblesses notoires : la tendance à l'\textbf{hallucination}
+(production d'informations erronées mais plausibles) et la difficulté à
+manipuler fidèlement de grandes tables. Ces limites guident notre choix
+architectural : confier les calculs à un moteur déterministe et réserver aux
+LLM la curation et la rédaction.
+
+\subsection{Les agents d'intelligence artificielle}
+Un \textbf{agent} est un système qui perçoit un environnement, raisonne et
+agit pour atteindre un objectif. Appliqué aux LLM, le paradigme agentique
+consiste à doter un modèle d'une \textbf{boucle} : observer l'état, décider
+d'une action (souvent un appel d'outil), exécuter, observer le résultat, et
+recommencer jusqu'à l'accomplissement de la tâche. Les approches multi-agents
+décomposent un problème complexe en \textbf{rôles spécialisés} qui coopèrent,
+à l'image d'une équipe humaine. Cette spécialisation améliore la fiabilité,
+la lisibilité et la maintenabilité, chaque agent disposant d'un contexte et
+de permissions restreints à sa mission.
+
+\subsection{Le protocole MCP (Model Context Protocol)}
+Le \textbf{Model Context Protocol}~\cite{mcp} est un standard ouvert,
+introduit par Anthropic, qui normalise la manière dont une application expose
+ses \textbf{outils}, ses \textbf{ressources} et ses \textbf{données} à des
+modèles de langage. À la manière d'un « port universel » entre les LLM et le
+monde logiciel, MCP définit un format commun pour décrire un outil (nom,
+description, schéma JSON des arguments) et pour l'invoquer.
+
+Dans notre projet, MCP joue un double rôle structurant : il sert de
+\textbf{registre central des capacités} du système (chargement de données,
+profilage, calcul d'indicateurs, génération de graphiques, etc.) et de
+\textbf{mécanisme de contrôle d'accès}. Chaque agent se voit attribuer un
+sous-ensemble d'outils autorisés ; toute tentative d'appel hors de ce
+périmètre est refusée par le serveur. Ce principe de \emph{moindre privilège}
+renforce la sûreté et clarifie les responsabilités.
+
+\subsection{Modélisation dimensionnelle et entrepôts de données}
+La théorie de la \textbf{modélisation dimensionnelle}, formalisée notamment par
+Kimball~\cite{kimball2013}, structure les données décisionnelles autour de
+\emph{tables de faits} (contenant les mesures) et de \emph{tables de dimensions}
+(contenant les axes d'analyse). Cette séparation conceptuelle entre
+\textbf{faits/mesures} et \textbf{dimensions} irrigue directement notre moteur de
+profilage : plutôt que d'imposer un schéma en étoile prédéfini, le système
+\emph{infère} dynamiquement le rôle de chaque colonne. Cette inférence
+automatique des rôles constitue la transposition « sans configuration » des
+principes de la modélisation dimensionnelle à un contexte généraliste.
+
+\subsection{Outils de visualisation et frameworks web}
+La restitution s'appuie sur \textbf{Plotly}~\cite{plotly}, une bibliothèque de
+visualisation interactive produisant des graphiques en HTML/JavaScript
+autonomes, et sur \textbf{FastAPI}~\cite{fastapi}, un framework web Python
+moderne et performant pour l'interface utilisateur. La manipulation des
+données repose sur \textbf{pandas}~\cite{pandas}, référence de l'analyse de
+données tabulaires en Python.
+
+\section{Méthodologie de travail}
+Le projet a été conduit selon une démarche \textbf{itérative et incrémentale}.
+Une première itération a établi le socle (moteur déterministe, serveur MCP,
+sept agents, interface) ; les itérations suivantes ont enrichi le système
+(robustesse, vérification des chiffres, suivi des coûts, cartes
+géographiques, détection d'anomalies, comparaison de segments) et amélioré
+l'interface. Chaque incrément a été \textbf{validé par des tests}
+automatisés et par des exécutions de bout en bout sur des jeux de données
+réels, garantissant la non-régression. Cette approche a permis de livrer en
+permanence un système fonctionnel et de prioriser les fonctionnalités à plus
+forte valeur.
+
+\section{Gestion et planification du projet}
+Le projet a été planifié en \textbf{cinq phases} successives mais partiellement
+recouvrantes, conformément à la démarche itérative. La
+figure~\ref{fig:gantt} en présente le diagramme de Gantt simplifié.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[x=0.95cm,y=0.62cm,font=\footnotesize]
+  % axe temps (semaines)
+  \foreach \x in {0,...,12} \draw[muted!40] (\x,0.4) -- (\x,-5.2);
+  \foreach \x/\lab in {0/S1,2/S3,4/S5,6/S7,8/S9,10/S11,12/S13}
+     \node[muted,font=\scriptsize] at (\x,0.8) {\lab};
+  % barres : nom, debut, duree, ligne
+  \def\bar#1#2#3#4{\fill[accent,rounded corners=2pt] (#2,-#4+0.2) rectangle (#2+#3,-#4-0.2);
+     \node[anchor=east,text=ink] at (-0.2,-#4) {#1};}
+  \bar{Étude \& état de l'art}{0}{2.5}{1}
+  \bar{Conception}{2}{2.5}{2}
+  \bar{Développement du socle}{3.5}{4}{3}
+  \bar{Enrichissement \& fiabilité}{7}{4}{4}
+  \bar{Tests \& rédaction}{9.5}{3}{5}
+\end{tikzpicture}
+\caption{Diagramme de Gantt simplifié du déroulement du projet.}
+\label{fig:gantt}
+\end{figure}
+
+\begin{description}
+  \item[Étude \& état de l'art.] Cadrage du sujet, revue des concepts (BI, LLM,
+    agents, MCP) et choix technologiques.
+  \item[Conception.] Définition des besoins, de l'architecture en couches et
+    de la répartition des rôles entre agents.
+  \item[Développement du socle.] Moteur déterministe, serveur MCP, sept agents,
+    interface web et premier pipeline de bout en bout.
+  \item[Enrichissement \& fiabilité.] Filets de sécurité, vérification des
+    chiffres, suivi des coûts, cartes géographiques et analyses avancées.
+  \item[Tests \& rédaction.] Consolidation des tests, étude de cas et rédaction
+    du présent rapport.
+\end{description}
+
+\callout{Synthèse du chapitre}{La BI traditionnelle reste manuelle, coûteuse et
+spécialisée. Les LLM et les agents, couplés au protocole MCP, offrent les briques
+d'une automatisation généralisée — à condition d'en maîtriser les faiblesses
+(hallucinations, fiabilité). Le chapitre suivant traduit ce constat en une
+architecture concrète.}

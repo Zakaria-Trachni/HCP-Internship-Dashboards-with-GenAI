@@ -1,0 +1,78 @@
+\chapter{Annexes}
+\markboth{ANNEXES}{}
+
+\section{Guide d'installation et d'exécution}
+Le système requiert Python~3.10 ou supérieur.
+
+\begin{lstlisting}[caption={Installation et lancement.}]
+# 1. Environnement virtuel
+python -m venv .venv
+source .venv/bin/activate        # macOS / Linux
+
+# 2. Dependances
+pip install -r requirements.txt
+
+# 3. Configuration (fournisseur de LLM)
+cp .env.example .env             # renseigner GROQ_API_KEY, ou LLM_PROVIDER=ollama
+
+# 4. Lancement de l'interface web
+uvicorn src.ui.app:app --reload
+# -> ouvrir http://127.0.0.1:8000
+\end{lstlisting}
+
+Il est aussi possible d'exécuter le pipeline en ligne de commande sur un
+fichier, ou de générer le jeu de données d'exemple :
+
+\begin{lstlisting}[caption={Exécutions alternatives.}]
+# Pipeline en ligne de commande
+python -m src.pipeline data/sample_sales.csv
+
+# Generation d'un jeu de donnees d'exemple
+python scripts/generate_sample_data.py --out data/sample_sales.csv
+\end{lstlisting}
+
+\section{Extrait : matrice de permissions (\texttt{config.yaml})}
+La configuration ci-dessous illustre le contrôle d'accès par rôle appliqué
+par le serveur MCP.
+
+\begin{lstlisting}[caption={Définition d'un agent et de ses outils autorisés.}]
+agents:
+  kpi:
+    description: >
+      Metriques et insights. Curent et calculent les KPIs, puis
+      detectent anomalies et comparaisons de segments.
+    tools:
+      - profile_dataset
+      - suggest_kpis
+      - compute_kpis
+      - detect_anomalies
+      - compare_segments
+\end{lstlisting}
+
+\section{Extrait : boucle d'appel d'outils d'un agent}
+\begin{lstlisting}[language=Python,caption={Cœur de la boucle agentique (\texttt{agents/base.py}).}]
+for step in range(1, self.max_steps + 1):
+    response = self.llm.chat(messages, tools=tools, temperature=self.temperature)
+    if not response.tool_calls:
+        # relance avec incitation si l'agent n'a encore appele aucun outil
+        if all_tool_calls or not tools or nudges_used >= self.nudge_budget:
+            final_text = response.content; break
+        messages.append(nudge_message); nudges_used += 1; continue
+    for tc in response.tool_calls:           # execution des appels d'outils
+        result = self.server.call_tool(store, self.role, tc.name, tc.arguments)
+        messages.append(tool_result_message(tc, result))
+\end{lstlisting}
+
+\section{Arborescence du projet}
+\begin{lstlisting}[caption={Organisation des sources.}]
+src/
+  core/        # moteur deterministe : profiler, kpi_engine,
+               # dashboard_builder, insights, validation
+  llm/         # client LLM (Groq / Ollama)
+  mcp_server/  # serveur MCP : outils + permissions
+  agents/      # les 7 agents specialises
+  ui/          # interface FastAPI + gabarits + rendu du rapport
+  pipeline.py  # orchestrateur de bout en bout
+tests/         # 22 tests automatises
+config.yaml    # matrice de permissions + seuils du moteur
+\end{lstlisting}
